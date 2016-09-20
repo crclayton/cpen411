@@ -244,7 +244,7 @@ sim_aux_config(FILE *stream)		/* output stream */
 void
 sim_aux_stats(FILE *stream)		/* output stream */
 {
-  /* nada */
+   printf("Test"); 
 }
 
 /* un-initialize simulator-specific state */
@@ -369,7 +369,7 @@ sim_main(void)
   int bits_diff;
   
 
-  int regs_regs_TPC;
+
 
 
 
