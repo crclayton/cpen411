@@ -67,30 +67,33 @@
 #include "stats.h"
 #include "sim.h"
 
-#define  MAXNUMS  10000 
+#define  MAXNUMS  22 
 
-int nums[MAXNUMS][2];
+int offsetcounts[MAXNUMS];
+
+
 
 bool isGPR(int R){
 	return R <= 31 && R >= 1;
 }
 
-int offset(int cpc, int pc){
-	return (int)abs(cpc-pc)/8;
+int offset(int x, int y){
+	return (int)abs(x-y)/8;
 }
 
-int bitcount(int offset){
-	return (int)floor(log(offset)/log(2) + 2);
+int bitcount(int ofs){
+	return (int)floor(log(ofs)/log(2) + 2);
 }
 
-void deffun(int index, int cpc, int pc){
+void deffun(int x, int y){
        
-        int ofs = offset(cpc, pc);
-        if( ofs == 0 ) return;
-
-	//fprintf(f, "Row, %i, %i\n", ofs, bitcount(ofs));
-	nums[index][0] = ofs;
-	nums[index][1] = bitcount(ofs);
+        int ofs = offset(x, y);
+	if(ofs == 0) return;
+		
+	int bitscount = bitcount(ofs);
+	
+	//printf("index:%i, values:%i, %i, offset:%i, count:%i\n", iii, xxx, yyy, ofsxxx, bitscount);
+	offsetcounts[bitscount]++;
 }
 
 
@@ -272,15 +275,15 @@ sim_aux_stats(FILE *stream)		/* output stream */
         char text[100];
         time_t now = time(NULL);
         struct tm *t = localtime(&now);
-        strftime(text, sizeof(text)-1, "Output %H.%M.txt", t);
+        strftime(text, sizeof(text)-1, "Output %H.%M.csv", t);
 
         stream = fopen(text, "w+");
         
-        for(i = 0; i < MAXNUMS-1;i++){
-        //      fprintf(stream, "%i, %i", nums[i][0], nums[i][1]);
+        for(i = 0; i < MAXNUMS - 1;i++){
+              fprintf(stream, "%i\n", offsetcounts[i]);
         }
 
-	fclose(stream);	 
+	fclose(stream); 	 
 }
 
 /* un-initialize simulator-specific state */
@@ -404,11 +407,11 @@ sim_main(void)
 
 	int bits_diff;
 
+	int i;
+	for(i = 0; i < MAXNUMS-1; i++) //offsetcounts[i] = 0;
 
-	char text[100];
-	time_t now = time(NULL);
-	struct tm *t = localtime(&now);
-	strftime(text, sizeof(text)-1, "Output %H.%M.txt", t);
+	
+
 
 
 
@@ -478,7 +481,7 @@ sim_main(void)
 		if (MD_OP_FLAGS(op) & F_LOAD) 	g_total_fload_branches++;
 		if (MD_OP_FLAGS(op) & F_IMM) 	g_total_fimm_branches++;
 
-		if(ii < MAXNUMS - 5) //deffun(ii, CPC, regs.regs_TPC);
+		//deffun(CPC, regs.regs_TPC);
                 
 
 		if (fault != md_fault_none)
