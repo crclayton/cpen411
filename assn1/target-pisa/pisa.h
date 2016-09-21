@@ -346,16 +346,30 @@ extern unsigned int md_op2flags[];
    || (((X) < 0) && ((Y) > 0) && (-MAXINT_VAL + (Y) > (X))))
 
 
-void deffun(int pc){
-	printf("%i, %i\n", OFFSET(CPC, pc), BITCOUNT(OFFSET(CPC, pc)));
+/*
+int offset(int cpc, int pc){
+	return (int)abs(cpc-pc)/8;
 }
 
-#define OFFSET(CPC, PC)  	(abs(CPC-PC)/8)
-#define BITCOUNT(X)		(int)floor(log(X)/log(2) + 2)
+int bitcount(int offset){
+	return (int)floor(log(offset)/log(2) + 2);
+}
+
+void deffun(int cpc, int pc){
+	printf("%i, %i\n", offset(cpc, pc), bitcount(offset(cpc, pc)));
+}
+*/
+
+
+#define OFFSET(CPC, PC)  		(abs(CPC-PC)/8)
+#define BITCOUNT(X)			(int)floor(log(X)/log(2) + 2)
+#define PRINTBC(CPC, PC)		printf("%i, %i\n", OFFSET(CPC, PC), BITCOUNT(OFFSET(CPC, PC)))
+
+ 
 
 /* default target PC handling */
 #ifndef SET_TPC
-#define SET_TPC(PC)		/*(regs.regs_TPC = PC)*/ (deffun(PC)) 
+#define SET_TPC(PC)		/*(regs.regs_TPC = PC)*/ (PRINTBC(CPC, PC)) 
 #endif /* SET_TPC */
 
 #ifdef BYTES_BIG_ENDIAN
@@ -793,4 +807,4 @@ extern SS_ADDR_TYPE temp_bs, temp_rd;
 #define FDIV(A, B)	((A) / (B))
 #define FINT(A)		((int)A)
 
-#endif
+#endf
