@@ -369,7 +369,7 @@ void deffun(int cpc, int pc){
 
 /* default target PC handling */
 #ifndef SET_TPC
-#define SET_TPC(PC)		/*(regs.regs_TPC = PC)*/ (PRINTBC(CPC, PC)) 
+#define SET_TPC(PC)		(regs.regs_TPC = PC) 
 #endif /* SET_TPC */
 
 #ifdef BYTES_BIG_ENDIAN
@@ -807,4 +807,4 @@ extern SS_ADDR_TYPE temp_bs, temp_rd;
 #define FDIV(A, B)	((A) / (B))
 #define FINT(A)		((int)A)
 
-#endf
+#endif

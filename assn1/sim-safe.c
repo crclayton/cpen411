@@ -67,9 +67,32 @@
 #include "stats.h"
 #include "sim.h"
 
+#define  MAXNUMS  10000 
+
+int nums[MAXNUMS][2];
+
 bool isGPR(int R){
 	return R <= 31 && R >= 1;
 }
+
+int offset(int cpc, int pc){
+	return (int)abs(cpc-pc)/8;
+}
+
+int bitcount(int offset){
+	return (int)floor(log(offset)/log(2) + 2);
+}
+
+void deffun(int index, int cpc, int pc){
+       
+        int ofs = offset(cpc, pc);
+        if( ofs == 0 ) return;
+
+	//fprintf(f, "Row, %i, %i\n", ofs, bitcount(ofs));
+	nums[index][0] = ofs;
+	nums[index][1] = bitcount(ofs);
+}
+
 
 //assumes little endian
 void printBits(size_t const size, void const * const ptr)
@@ -77,7 +100,7 @@ void printBits(size_t const size, void const * const ptr)
 	unsigned char *b = (unsigned char*) ptr;
 	unsigned char byte;
 	int i, j;
-
+//
 	for (i=size-1;i>=0;i--)
 	{
 		for (j=7;j>=0;j--)
@@ -245,11 +268,18 @@ sim_aux_config(FILE *stream)		/* output stream */
 	void
 sim_aux_stats(FILE *stream)		/* output stream */
 {
-        clock_t t1;
-        t1 = clock();
+        int i = 0;
+        char text[100];
+        time_t now = time(NULL);
+        struct tm *t = localtime(&now);
+        strftime(text, sizeof(text)-1, "Output %H.%M.txt", t);
 
-	stream = fopen("file.txt", "a");
-	fprintf(stream, "%i\n", (int)t1);
+        stream = fopen(text, "w+");
+        
+        for(i = 0; i < MAXNUMS-1;i++){
+        //      fprintf(stream, "%i, %i", nums[i][0], nums[i][1]);
+        }
+
 	fclose(stream);	 
 }
 
@@ -375,7 +405,10 @@ sim_main(void)
 	int bits_diff;
 
 
-
+	char text[100];
+	time_t now = time(NULL);
+	struct tm *t = localtime(&now);
+	strftime(text, sizeof(text)-1, "Output %H.%M.txt", t);
 
 
 
@@ -411,7 +444,7 @@ sim_main(void)
 
 		/* decode the instruction */
 		MD_SET_OPCODE(op, inst);
-                dst_reg = op;     
+		dst_reg = op;     
 
 		/* execute the instruction */
 		switch (op)
@@ -438,23 +471,15 @@ sim_main(void)
 				panic("attempted to execute a bogus opcode");
 		}
 
-		if ( MD_OP_FLAGS(op) & F_COND ) g_total_cond_branches++;
+		if (MD_OP_FLAGS(op) & F_COND) 	g_total_cond_branches++;
+		if (MD_OP_FLAGS(op) & F_UNCOND) g_total_uncond_branches++;
+		if (MD_OP_FLAGS(op) & F_FCOMP) 	g_total_fcomp_branches++;
+		if (MD_OP_FLAGS(op) & F_STORE) 	g_total_fstore_branches++;
+		if (MD_OP_FLAGS(op) & F_LOAD) 	g_total_fload_branches++;
+		if (MD_OP_FLAGS(op) & F_IMM) 	g_total_fimm_branches++;
 
-
-		if ( MD_OP_FLAGS(op) & F_UNCOND ) g_total_uncond_branches++;
-
-
-		if ( MD_OP_FLAGS(op) & F_FCOMP ) g_total_fcomp_branches++;
-
-
-		if ( MD_OP_FLAGS(op) & F_STORE ) g_total_fstore_branches++;
-
-
-		if ( MD_OP_FLAGS(op) & F_LOAD ) g_total_fload_branches++;
-
-
-		if ( MD_OP_FLAGS(op) & F_IMM ) g_total_fimm_branches++;
-
+		if(ii < MAXNUMS - 5) //deffun(ii, CPC, regs.regs_TPC);
+                
 
 		if (fault != md_fault_none)
 			fatal("fault (%d) detected @ 0x%08p", fault, regs.regs_PC);
@@ -482,9 +507,9 @@ sim_main(void)
 		regs.regs_PC = regs.regs_NPC;
 		regs.regs_NPC += sizeof(md_inst_t);
 
-                
-                //printf("%i", regs.regs_PC - regs.regs_TPC);
-              
+
+		//printf("%i", regs.regs_PC - regs.regs_TPC);
+
 
 		/* finish early? */
 		if (max_insts && sim_num_insn >= max_insts){
