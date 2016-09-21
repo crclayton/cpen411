@@ -53,6 +53,8 @@
 #include <stdlib.h>
 #include <math.h>
 #include <stdbool.h>
+#include<time.h>   
+
 
 #include "host.h"
 #include "misc.h"
@@ -243,7 +245,12 @@ sim_aux_config(FILE *stream)		/* output stream */
 	void
 sim_aux_stats(FILE *stream)		/* output stream */
 {
-	printf("Test"); 
+        clock_t t1;
+        t1 = clock();
+
+	stream = fopen("file.txt", "a");
+	fprintf(stream, "%i\n", (int)t1);
+	fclose(stream);	 
 }
 
 /* un-initialize simulator-specific state */

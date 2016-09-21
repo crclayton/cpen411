@@ -345,9 +345,17 @@ extern unsigned int md_op2flags[];
   ((((X) > 0) && ((Y) < 0) && (MAXINT_VAL + (Y) < (X)))			\
    || (((X) < 0) && ((Y) > 0) && (-MAXINT_VAL + (Y) > (X))))
 
+
+void deffun(int pc){
+	printf("%i, %i\n", OFFSET(CPC, pc), BITCOUNT(OFFSET(CPC, pc)));
+}
+
+#define OFFSET(CPC, PC)  	(abs(CPC-PC)/8)
+#define BITCOUNT(X)		(int)floor(log(X)/log(2) + 2)
+
 /* default target PC handling */
 #ifndef SET_TPC
-#define SET_TPC(PC)	/*(void)0*/ (regs.regs_TPC = (PC))
+#define SET_TPC(PC)		/*(regs.regs_TPC = PC)*/ (deffun(PC)) 
 #endif /* SET_TPC */
 
 #ifdef BYTES_BIG_ENDIAN
