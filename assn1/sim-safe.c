@@ -82,14 +82,26 @@ int offset(int x, int y){
 }
 
 int bitcount(int ofs){
-	return (int)floor(log(ofs)/log(2) + 2);
+	return (int)floor(log(ofs)/log(2.0) + 2);
 }
 
 void save(int x, int y){ 
-        int ofs = offset(x, y);
+        int ofs = (int)(x-y)/8;
+	int bitscount;
+
 	if(ofs == 0) return;
-		
-	int bitscount = bitcount(ofs);	
+	if(ofs > 0)  bitscount = (int)floor(log(ofs)/log(2.0))+2;
+	if(ofs < 0)  bitscount = (int)ceil(log(-ofs)/log(2.0))+1;
+
+	offsetcounts[bitscount]++;
+}
+
+void saveWrong(int x, int y){
+	int ofs = (int)abs(x-y)/8;
+	int bitscount;
+
+	if(ofs == 0) return;
+	bitscount = (int)floor(log(ofs)/log(2.0)+2);
 
 	offsetcounts[bitscount]++;
 }
@@ -393,8 +405,7 @@ sim_uninit(void)
 #define DTMP            (3+32+32)
 
 /* start simulation, program loaded, processor precise state initialized */
-	void
-sim_main(void)
+void sim_main(void)
 {
 	md_inst_t inst;
 	register md_addr_t addr;
@@ -439,14 +450,14 @@ sim_main(void)
 
 		/* decode the instruction */
 		MD_SET_OPCODE(op, inst);
-		new_reg = op;     
+	
 
 		/* execute the instruction */
 		switch (op)
 		{
 #define DEFINST(OP,MSK,NAME,OPFORM,RES,FLAGS,O1,O2,I1,I2,I3)						\
 			case OP:									\
-													\
+		        new_reg = O1;									\
 			if(isGPR(new_reg)) {				         			\
 				bits_diff = count_bits_different(GPR(prv_reg), GPR(new_reg));       	\
 				g_total_register_operations++;                            		\
@@ -502,7 +513,7 @@ sim_main(void)
 		regs.regs_PC = regs.regs_NPC;
 		regs.regs_NPC += sizeof(md_inst_t);
 
-
+		//printf("%i", sizeof(md_inst_t));
 		//printf("%i", regs.regs_PC - regs.regs_TPC);
 
 
