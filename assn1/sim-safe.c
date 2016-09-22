@@ -26,7 +26,7 @@
  * entirety accompanies all copies.
  * 
  * 3. ALL COMMERCIAL USE, AND ALL USE BY FOR PROFIT ENTITIES, IS EXPRESSLY
- * PROHIBITED WITHOUT A LICENSE FROM SIMPLESCALAR, LLC (info@simplescalar.com).
+ * PROHIBITED WITHOUT A LICENSE FROM SIMPLESCALAR, LLC (info@simplescalar.com).X
  * 
  * 4. No nonprofit user may place any restrictions on the use of this software,
  * including as modified by the user, by any other authorized user.
@@ -67,7 +67,7 @@
 #include "stats.h"
 #include "sim.h"
 
-#define  MAXNUMS  22 
+#define  MAXNUMS  21 
 
 int offsetcounts[MAXNUMS];
 
@@ -85,14 +85,12 @@ int bitcount(int ofs){
 	return (int)floor(log(ofs)/log(2) + 2);
 }
 
-void deffun(int x, int y){
-       
+void save(int x, int y){ 
         int ofs = offset(x, y);
 	if(ofs == 0) return;
 		
-	int bitscount = bitcount(ofs);
-	
-	//printf("index:%i, values:%i, %i, offset:%i, count:%i\n", iii, xxx, yyy, ofsxxx, bitscount);
+	int bitscount = bitcount(ofs);	
+
 	offsetcounts[bitscount]++;
 }
 
@@ -275,15 +273,18 @@ sim_aux_stats(FILE *stream)		/* output stream */
         char text[100];
         time_t now = time(NULL);
         struct tm *t = localtime(&now);
-        strftime(text, sizeof(text)-1, "Output %H.%M.csv", t);
+        strftime(text, sizeof(text)-1, "out%H-%M.csv", t);
 
         stream = fopen(text, "w+");
-        
+	
+	fprintf(stream, "Bits, Offset\n");       
+ 
         for(i = 0; i < MAXNUMS - 1;i++){
-              fprintf(stream, "%i\n", offsetcounts[i]);
+              fprintf(stream, "%i, %i\n", i, offsetcounts[i]);
         }
 
 	fclose(stream); 	 
+	
 }
 
 /* un-initialize simulator-specific state */
@@ -408,7 +409,7 @@ sim_main(void)
 	int bits_diff;
 
 	int i;
-	for(i = 0; i < MAXNUMS-1; i++) //offsetcounts[i] = 0;
+	//for(i = 0; i < 20; i++) offsetcounts[i] = 0;
 
 	
 
@@ -481,7 +482,7 @@ sim_main(void)
 		if (MD_OP_FLAGS(op) & F_LOAD) 	g_total_fload_branches++;
 		if (MD_OP_FLAGS(op) & F_IMM) 	g_total_fimm_branches++;
 
-		//deffun(CPC, regs.regs_TPC);
+		if (MD_OP_FLAGS(op) & F_COND)   save(CPC, regs.regs_TPC);
                 
 
 		if (fault != md_fault_none)
