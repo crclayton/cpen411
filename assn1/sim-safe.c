@@ -401,18 +401,11 @@ sim_main(void)
 	enum md_opcode op;
 	register int is_write;
 	enum md_fault_type fault;
-	int dst_reg;
 
-	int prv_reg;
-	int new_reg;
+	int prv_reg = 0;	
+	int new_reg = 0;
 
 	int bits_diff;
-
-	int i;
-	//for(i = 0; i < 20; i++) offsetcounts[i] = 0;
-
-	
-
 
 
 
@@ -421,12 +414,10 @@ sim_main(void)
 	/* set up initial default next PC */
 	regs.regs_NPC = regs.regs_PC + sizeof(md_inst_t);
 
-	int ii = 0;
+
 
 	while (TRUE)
 	{
-		if(ii > 0) prv_reg = new_reg;
-		ii++;
 
 		/* maintain $r0 semantics */
 		regs.regs_R[MD_REG_ZERO] = 0;
@@ -448,23 +439,23 @@ sim_main(void)
 
 		/* decode the instruction */
 		MD_SET_OPCODE(op, inst);
-		dst_reg = op;     
+		new_reg = op;     
 
 		/* execute the instruction */
 		switch (op)
 		{
-#define DEFINST(OP,MSK,NAME,OPFORM,RES,FLAGS,O1,O2,I1,I2,I3)				\
+#define DEFINST(OP,MSK,NAME,OPFORM,RES,FLAGS,O1,O2,I1,I2,I3)						\
 			case OP:									\
-													/*dst_reg = O1;*/                                                 		\
-			new_reg = dst_reg;								\
-			if(isGPR(dst_reg)) {				         			\
+													\
+			if(isGPR(new_reg)) {				         			\
 				bits_diff = count_bits_different(GPR(prv_reg), GPR(new_reg));       	\
-				g_total_register_operations++;                            		 	\
+				g_total_register_operations++;                            		\
 				g_total_register_bit_switch += bits_diff;             		    	\
+                                prv_reg = new_reg;							\
 			}										\
 			SYMCAT(OP,_IMPL);								\
 			break;
-#define DEFLINK(OP,MSK,NAME,MASK,SHIFT)    						\
+#define DEFLINK(OP,MSK,NAME,MASK,SHIFT)    								\
 			case OP:									\
 													panic("attempted to execute a linking opcode");
 #define CONNECT(OP)
