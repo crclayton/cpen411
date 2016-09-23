@@ -24,7 +24,7 @@
  * solely for nonprofit, educational, noncommercial research, and
  * noncommercial scholarship purposes provided that this notice in its
  * entirety accompanies all copies.
- * 
+ l* 
  * 3. ALL COMMERCIAL USE, AND ALL USE BY FOR PROFIT ENTITIES, IS EXPRESSLY
  * PROHIBITED WITHOUT A LICENSE FROM SIMPLESCALAR, LLC (info@simplescalar.com).X
  * 
@@ -450,7 +450,7 @@ void sim_main(void)
 
 		/* decode the instruction */
 		MD_SET_OPCODE(op, inst);
-	
+			
 
 		/* execute the instruction */
 		switch (op)
@@ -458,8 +458,8 @@ void sim_main(void)
 #define DEFINST(OP,MSK,NAME,OPFORM,RES,FLAGS,O1,O2,I1,I2,I3)						\
 			case OP:									\
 		        new_reg = O1;									\
-			if(isGPR(new_reg)) {				         			\
-				bits_diff = count_bits_different(GPR(prv_reg), GPR(new_reg));       	\
+			if( isGPR(new_reg) ) {	 							\
+				bits_diff = count_bits_different(GPR(prv_reg), GPR(new_reg));		\
 				g_total_register_operations++;                            		\
 				g_total_register_bit_switch += bits_diff;             		    	\
                                 prv_reg = new_reg;							\
@@ -479,7 +479,7 @@ void sim_main(void)
 
 		if (MD_OP_FLAGS(op) & F_COND) 	g_total_cond_branches++;
 		if (MD_OP_FLAGS(op) & F_UNCOND) g_total_uncond_branches++;
-		if (MD_OP_FLAGS(op) & F_FCOMP) 	g_total_fcomp_branches++;
+		if (MD_OP_FLAGS(op) & F_FCOMP /* F_FPCOND? */) 	g_total_fcomp_branches++;
 		if (MD_OP_FLAGS(op) & F_STORE) 	g_total_fstore_branches++;
 		if (MD_OP_FLAGS(op) & F_LOAD) 	g_total_fload_branches++;
 		if (MD_OP_FLAGS(op) & F_IMM) 	g_total_fimm_branches++;
