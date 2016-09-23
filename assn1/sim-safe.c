@@ -67,64 +67,41 @@
 #include "stats.h"
 #include "sim.h"
 
-#define  MAXNUMS  21 
 
+// this is where we will store our offset counts
+// offsetcounts[N] is a counter for instances of N bits needed
+#define  MAXNUMS  21 
 int offsetcounts[MAXNUMS];
 
 
-
+// test if general purpose register
 bool isGPR(int R){
 	return R <= 31 && R >= 1;
 }
 
+// determine the offset between two values
 int offset(int x, int y){
-	return (int)abs(x-y)/8;
+	return (int)(x-y)/8;
 }
 
+// count the number of bits needed to represent a value
 int bitcount(int ofs){
-	return (int)floor(log(ofs)/log(2.0) + 2);
+        if(ofs > 0)  return (int)floor(log(ofs)/log(2.0))+2;
+        if(ofs < 0)  return (int)ceil(log(-ofs)/log(2.0))+1;
+	return -1;
 }
 
+// increment the counter for the offset of the two bits
 void save(int x, int y){ 
-        int ofs = (int)(x-y)/8;
-	int bitscount;
-
+        int ofs = offset(x, y);
 	if(ofs == 0) return;
-	if(ofs > 0)  bitscount = (int)floor(log(ofs)/log(2.0))+2;
-	if(ofs < 0)  bitscount = (int)ceil(log(-ofs)/log(2.0))+1;
 
-	offsetcounts[bitscount]++;
-}
-
-void saveWrong(int x, int y){
-	int ofs = (int)abs(x-y)/8;
-	int bitscount;
-
-	if(ofs == 0) return;
-	bitscount = (int)floor(log(ofs)/log(2.0)+2);
-
-	offsetcounts[bitscount]++;
+	int number_of_bits = bitcount(ofs);
+	offsetcounts[number_of_bits]++;
 }
 
 
-//assumes little endian
-void printBits(size_t const size, void const * const ptr)
-{
-	unsigned char *b = (unsigned char*) ptr;
-	unsigned char byte;
-	int i, j;
-//
-	for (i=size-1;i>=0;i--)
-	{
-		for (j=7;j>=0;j--)
-		{
-			byte = (b[i] >> j) & 1;
-			printf("%u", byte);
-		}
-	}
-	puts("");
-}
-
+// counts the number of bits 
 int count_bits_different(int R1, int R2){
 	return __builtin_popcount(R1 ^ R2);
 }
@@ -134,6 +111,10 @@ int count_bits_different(int R1, int R2){
  * Unlike sim-fast, this functional simulator checks for all instruction
  * errors, and the implementation is crafted for clarity rather than speed.
  */
+
+
+// counters for all the different instruction types
+// for the averages bit changes, I do total_register_bit_switch/total_register_operations
 static counter_t g_total_cond_branches;
 static counter_t g_total_uncond_branches;
 static counter_t g_total_fcomp_branches;
@@ -184,6 +165,8 @@ sim_check_options(struct opt_odb_t *odb, int argc, char **argv)
 	void
 sim_reg_stats(struct stat_sdb_t *sdb)
 {
+	// REGISTERING ALL THE COUNTERS FOR PRINTING AT THE END
+	
 	stat_reg_counter(sdb, "sim_num_cond_branches" /* label for printing */,
 			"total conditional branches executed" /*description*/,
 			&g_total_cond_branches /* pointer to the counter */,
@@ -413,9 +396,10 @@ void sim_main(void)
 	register int is_write;
 	enum md_fault_type fault;
 
+
+	// variables to hold previous and new register values to compare bit changes
 	int prv_reg = 0;	
 	int new_reg = 0;
-
 	int bits_diff;
 
 
@@ -455,6 +439,11 @@ void sim_main(void)
 		/* execute the instruction */
 		switch (op)
 		{
+			// when the register is a general purpose register
+			// count the bits different between the previous and new registers
+			// add the difference in bits to the sum of bit switches in registers
+			// then increment the total number of register operations
+			// then set the previous register to be the new register for the next cycle
 #define DEFINST(OP,MSK,NAME,OPFORM,RES,FLAGS,O1,O2,I1,I2,I3)						\
 			case OP:									\
 		        new_reg = O1;									\
@@ -477,6 +466,7 @@ void sim_main(void)
 				panic("attempted to execute a bogus opcode");
 		}
 
+		// check each flag to increment the different operation type counters
 		if (MD_OP_FLAGS(op) & F_COND) 	g_total_cond_branches++;
 		if (MD_OP_FLAGS(op) & F_UNCOND) g_total_uncond_branches++;
 		if (MD_OP_FLAGS(op) & F_FCOMP /* F_FPCOND? */) 	g_total_fcomp_branches++;
@@ -484,7 +474,9 @@ void sim_main(void)
 		if (MD_OP_FLAGS(op) & F_LOAD) 	g_total_fload_branches++;
 		if (MD_OP_FLAGS(op) & F_IMM) 	g_total_fimm_branches++;
 
-		if (MD_OP_FLAGS(op) & F_COND)   save(CPC, regs.regs_TPC);
+		// if the operation is a conditional type, save the number 
+		// of bits required to change the offset
+		if (MD_OP_FLAGS(op) & F_COND)   save(CPC, regs.regs_TPC); 
                 
 
 		if (fault != md_fault_none)
