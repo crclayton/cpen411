@@ -1,1 +1,1 @@
-../sim-safe -max:inst 200000000 cc1.ss -O2 integrate.i
+../sim-scalar-cpen411 -max:inst 200000000 cc1.ss -O2 integrate.i

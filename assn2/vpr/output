@@ -1,0 +1,24 @@
+ttempting routing with a width factor (usually maximum channel width) of 15.
+
+sim: ** simulation statistics **
+sim_num_insn              200000000 # total number of instructions executed
+sim_cycles                379476042 # total number of cycles
+sim_cpi                      1.8974 # cycles per instruction (CPI)
+sim_num_refs               78951170 # total number of loads and stores executed
+sim_elapsed_time                 38 # total simulation time in seconds
+sim_inst_rate          5263157.8947 # simulation speed (in insts/sec)
+ld_text_base             0x00400000 # program text (code) segment base
+ld_text_size                 354816 # program text (code) size in bytes
+ld_data_base             0x10000000 # program initialized data segment base
+ld_data_size                  39648 # program init'ed `.data' and uninit'ed `.bss' size in bytes
+ld_stack_base            0x7fffc000 # program stack segment base (highest address in stack)
+ld_stack_size                 16384 # program initial stack size
+ld_prog_entry            0x00400140 # program entry point (initial PC)
+ld_environ_base          0x7fff8000 # program environment base address address
+ld_target_big_endian              0 # target executable endian-ness, non-zero if big endian
+mem.page_count                  450 # total number of pages allocated
+mem.page_mem                  1800k # total size of memory pages allocated
+mem.ptab_misses                 450 # total first level page table misses
+mem.ptab_accesses        1038850000 # total page table accesses
+mem.ptab_miss_rate           0.0000 # first level page table miss rate
+

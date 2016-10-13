@@ -1,0 +1,21 @@
+im: ** simulation statistics **
+sim_num_insn              132965196 # total number of instructions executed
+sim_cycles                277027407 # total number of cycles
+sim_cpi                      2.0835 # cycles per instruction (CPI)
+sim_num_refs               36736146 # total number of loads and stores executed
+sim_elapsed_time                 27 # total simulation time in seconds
+sim_inst_rate          4924636.8889 # simulation speed (in insts/sec)
+ld_text_base             0x00400000 # program text (code) segment base
+ld_text_size                 621600 # program text (code) size in bytes
+ld_data_base             0x10000000 # program initialized data segment base
+ld_data_size                 578004 # program init'ed `.data' and uninit'ed `.bss' size in bytes
+ld_stack_base            0x7fffc000 # program stack segment base (highest address in stack)
+ld_stack_size                 16384 # program initial stack size
+ld_prog_entry            0x00400140 # program entry point (initial PC)
+ld_environ_base          0x7fff8000 # program environment base address address
+ld_target_big_endian              0 # target executable endian-ness, non-zero if big endian
+mem.page_count                  281 # total number of pages allocated
+mem.page_mem                  1124k # total size of memory pages allocated
+mem.ptab_misses                 281 # total first level page table misses
+mem.ptab_accesses         663301152 # total page table accesses
+mem.ptab_miss_rate           0.0000 # first level page table miss rate

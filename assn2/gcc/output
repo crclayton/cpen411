@@ -1,0 +1,26 @@
+im: ** starting CPEN 411 pipeline simulation **
+warning: syscall: sigvec ignored
+warning: syscall: sigvec ignored
+ function_cannot_inline_p save_for_inline copy_for_inline expand_inline_function copy_parm_decls copy_decl_tree copy_rtx_and_substitute
+sim: ** simulation statistics **
+sim_num_insn              200000000 # total number of instructions executed
+sim_cycles                355169800 # total number of cycles
+sim_cpi                      1.7758 # cycles per instruction (CPI)
+sim_num_refs               80569647 # total number of loads and stores executed
+sim_elapsed_time                 37 # total simulation time in seconds
+sim_inst_rate          5405405.4054 # simulation speed (in insts/sec)
+ld_text_base             0x00400000 # program text (code) segment base
+ld_text_size                2482768 # program text (code) size in bytes
+ld_data_base             0x10000000 # program initialized data segment base
+ld_data_size                 287408 # program init'ed `.data' and uninit'ed `.bss' size in bytes
+ld_stack_base            0x7fffc000 # program stack segment base (highest address in stack)
+ld_stack_size                 16384 # program initial stack size
+ld_prog_entry            0x00400140 # program entry point (initial PC)
+ld_environ_base          0x7fff8000 # program environment base address address
+ld_target_big_endian              0 # target executable endian-ness, non-zero if big endian
+mem.page_count                  986 # total number of pages allocated
+mem.page_mem                  3944k # total size of memory pages allocated
+mem.ptab_misses                1022 # total first level page table misses
+mem.ptab_accesses        1075342068 # total page table accesses
+mem.ptab_miss_rate           0.0000 # first level page table miss rate
+

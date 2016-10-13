@@ -130,6 +130,7 @@ sim_reg_stats(struct stat_sdb_t *sdb)
   stat_reg_uint(sdb, "sim_cycles",
            "total number of cycles",
            &sim_cycle, 0, NULL);
+
   stat_reg_formula(sdb, "sim_cpi",
            "cycles per instruction (CPI)",
            "sim_cycles / sim_num_insn", NULL);
@@ -511,8 +512,22 @@ void decode(void)
     }
 
     // check for RAW hazard
-    for ( i=0; i < 3; ++i ) { // for each potential source operand...
+
+    // for each source register of the instruction being decoded
+    for ( i=0; i < 3; ++i ) { 
+
+        // if there's a dependency for that register in the current pipeline
         if ( pI->src[i] != NULL ) {
+
+            // get the space between the current instruction and the instruction with the dependency
+            // get the instruction type of the current instruction 
+                   // you can forward ALU operations after the execute 
+                   // you can forward LD operations after the memory
+
+
+            
+
+            // then stall until the current instruction is complete
             if( pI->src[i]->donecycle > sim_cycle ) {
                 // src[i] has not written to register file this cycle or earlier
 		pI->stalled = 1;
@@ -643,7 +658,9 @@ void sim_main(void)
         execute();
         decode();
         fetch();
-
+        
+        inst_t* IF = g_piperegister[IF_ID_REGISTER];
+        
         sim_cycle++;
     } while (!max_insts || sim_num_insn < max_insts);
 }
