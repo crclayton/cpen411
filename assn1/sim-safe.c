@@ -261,8 +261,8 @@ sim_aux_config(FILE *stream)		/* output stream */
 }
 
 /* dump simulator-specific auxiliary simulator statistics */
-	void
-sim_aux_stats(FILE *stream)		/* output stream */
+// print the contents of the offset counts array to a file 
+void sim_aux_stats(FILE *stream)		/* output stream */
 {
         int i = 0;
         char text[100];
