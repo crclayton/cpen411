@@ -58,6 +58,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <assert.h>
+#include <stdbool.h>
 
 #include "host.h"
 #include "misc.h"
@@ -91,7 +92,6 @@ static unsigned int max_insts;
 
 /* cycle counter */
 unsigned sim_cycle;
-
 
 /* register simulator-specific options */
 void
@@ -369,6 +369,31 @@ void cpen411_init()
     regs.regs_NPC = regs.regs_PC + sizeof(md_inst_t);
 }
 
+bool is_load(inst_t* i){
+    enum md_opcode op;
+    MD_SET_OPCODE(op, i->inst);
+    return (MD_OP_FLAGS(op) & F_LOAD); // (MD_OP_FLAGS(op) & F_FCOMP);
+}
+
+void forward(inst_t* i){
+    i->donecycle = sim_cycle;
+    i->status = DONE; // i.e., finished writing back this cycle
+
+    // release destination regs
+    g_raw[i->dst[0]] = NULL;
+    g_raw[i->dst[1]] = NULL;
+
+    g_piperegister[IF_ID_REGISTER] = NULL;
+    g_piperegister[ID_EX_REGISTER] = NULL;
+    g_piperegister[EX_MEM_REGISTER] = NULL;
+    g_piperegister[MEM_WB_REGISTER] = NULL;
+
+    free_inst(i);
+}
+
+
+
+
 void fetch(void)
 {
     md_inst_t inst;
@@ -522,7 +547,7 @@ void decode(void)
             // get the space between the current instruction and the instruction with the dependency
             // get the instruction type of the current instruction 
                    // you can forward ALU operations after the execute 
-                   // you can forward LD operations after the memory
+                   // you can forward LD operations after the mnmory
 
 
             
@@ -561,6 +586,8 @@ void execute()
 
     g_piperegister[EX_MEM_REGISTER] = pI; // move to EX/MEM register
     g_piperegister[ID_EX_REGISTER] = NULL;
+
+    if(!is_load(pI)) forward(pI);
 }
 
 void memory()
@@ -648,7 +675,7 @@ void display_pipeline()
 }
 
 /* start simulation, program loaded, processor precise state initialized */
-void sim_main(void)
+void main(void)
 {
     cpen411_init();
 
