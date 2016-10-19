@@ -123,7 +123,8 @@ static counter_t g_total_fload_branches;
 static counter_t g_total_fimm_branches;
 static counter_t g_total_register_bit_switch;
 static counter_t g_total_register_operations;
-static counter_t g_total_cycles;
+static counter_t cpi;
+
 
 /* simulated registers */
 static struct regs_t regs;
@@ -209,11 +210,10 @@ sim_reg_stats(struct stat_sdb_t *sdb)
 			0 /* initial value for the counter */, NULL);
 
 
-        stat_reg_counter(sdb, "sim_num_total_cycles" /* label for printing */,
-                        "total number of instruction cycles" /*description*/,
-                        &g_total_cycles /* pointer to the counter */,
+        stat_reg_counter(sdb, "sim_num_register_change" /* label for printing */,
+                        "total number of operations on registers 1-32" /*description*/,
+                        &cpi /* pointer to the counter */,
                         0 /* initial value for the counter */, NULL);
-
 
 	stat_reg_formula(sdb, "sim_cond_branch_freq",
 			"relative frequency of conditional branches",
@@ -407,20 +407,9 @@ void sim_main(void)
 	// variables to hold previous and new register values to compare bit changes
 	int prv_reg = 0;	
 	int new_reg = 0;
-
 	int bits_diff;
 
-	bool load_last_cycle = false;	
 
-        int dst_curr1 = 0;
-        int dst_curr2 = 0;
-
-	int dst_load1 = 0;
-	int dst_load2 = 0;
-
-        int src1 = 0; 
-        int src2 = 0;
-        int src3 = 0; 
 
 	fprintf(stderr, "nclude <stdbool.h>sim: ** starting functional simulation **\n");
 
@@ -441,10 +430,8 @@ void sim_main(void)
 		/* get the next instruction to execute */
 		MD_FETCH_INST(inst, mem, regs.regs_PC);
 
-           
-                /* keep an instruction count */
+		/* keep an instruction count */
 		sim_num_insn++;
-                g_total_cycles++;
 
 		/* set default reference address and access mode */
 		addr = 0; is_write = FALSE;
@@ -454,8 +441,7 @@ void sim_main(void)
 
 		/* decode the instruction */
 		MD_SET_OPCODE(op, inst);
-	        
-	
+			
 
 		/* execute the instruction */
 		switch (op)
@@ -466,10 +452,8 @@ void sim_main(void)
 			// then increment the total number of register operations
 			// then set the previous register to be the new register for the next cycle
 #define DEFINST(OP,MSK,NAME,OPFORM,RES,FLAGS,O1,O2,I1,I2,I3)						\
-		        case OP:									\
-			new_reg = O1;									\
-                        dst_curr1 = GPR(O1); dst_curr2 = GPR(O2);                                       		\
-                        src1 = GPR(I1); src2 = GPR(I2); src3 = GPR(I3);					\
+			case OP:									\
+		        new_reg = O1;									\
 			if( isGPR(new_reg) ) {	 							\
 				bits_diff = count_bits_different(GPR(prv_reg), GPR(new_reg));		\
 				g_total_register_operations++;                            		\
@@ -489,46 +473,13 @@ void sim_main(void)
 				panic("attempted to execute a bogus opcode");
 		}
 
-
-                  
 		// check each flag to increment the different operation type counters
-		if (MD_OP_FLAGS(op) & F_COND) 	{
-                    g_total_cond_branches++;
-                }
-		if (MD_OP_FLAGS(op) & F_UNCOND) {
-                    g_total_uncond_branches++;  
-                }
-	 	if (MD_OP_FLAGS(op) & F_FCOMP /* F_FPCOND? */) 
-                {   g_total_fcomp_branches++;
-                }
-		if (MD_OP_FLAGS(op) & F_STORE)	{
-                    g_total_fstore_branches++;
-                }
-
-		// if we go through a load or a branch cycle, save the destination registers
-		if (MD_OP_FLAGS(op) & F_LOAD || MD_OP_FLAGS(op) & F_CTRL)
-                {
-		    dst_load1 = dst_curr1; 
-		    dst_load2 = dst_curr2;
-		    load_last_cycle = true;
-                }
-                // if we're going through a cycle that isn't a load or a branch, then we may have a dependency from a load/branch from last cycle
-                else if(load_last_cycle)
-                {	
-		    // if either destination register from last cycle is the source register of this cycle, increment the counter
-                    if( dst_load1 == src1 || dst_load1 == src2 || dst_load1 == src3 ||
-		        dst_load2 == src1 || dst_load2 == src2 || dst_load2 == src3 ) g_total_fload_branches++;
-                    
-                    // then set the destination registers to garbage values so we don't increment again until after another load
-                    load_last_cycle = false;
-                }
-
-		if (MD_OP_FLAGS(op) & F_IMM){
-                   g_total_fimm_branches++;
-                }
-
-             
-                
+		if (MD_OP_FLAGS(op) & F_COND) 	g_total_cond_branches++;
+		if (MD_OP_FLAGS(op) & F_UNCOND) g_total_uncond_branches++;
+		if (MD_OP_FLAGS(op) & F_FCOMP /* F_FPCOND? */) 	g_total_fcomp_branches++;
+		if (MD_OP_FLAGS(op) & F_STORE) 	g_total_fstore_branches++;
+		if (MD_OP_FLAGS(op) & F_LOAD) 	g_total_fload_branches++;
+		if (MD_OP_FLAGS(op) & F_IMM) 	g_total_fimm_branches++;
 
 		// if the operation is a conditional type, save the number 
 		// of bits required to change the offset
@@ -556,12 +507,14 @@ void sim_main(void)
 				is_write = TRUE;
 		}
 
+
 		/* go to the next instruction */
 		regs.regs_PC = regs.regs_NPC;
 		regs.regs_NPC += sizeof(md_inst_t);
 
 		//printf("%i", sizeof(md_inst_t));
 		//printf("%i", regs.regs_PC - regs.regs_TPC);
+
 
 		/* finish early? */
 		if (max_insts && sim_num_insn >= max_insts){

@@ -406,21 +406,16 @@ void sim_main(void)
 
 	// variables to hold previous and new register values to compare bit changes
 	int prv_reg = 0;	
-	int new_reg = 0;
 
+	int new_reg = 0;
 	int bits_diff;
 
-	bool load_last_cycle = false;	
-
-        int dst_curr1 = 0;
-        int dst_curr2 = 0;
-
-	int dst_load1 = 0;
-	int dst_load2 = 0;
-
+        int dst = 0;
         int src1 = 0; 
         int src2 = 0;
-        int src3 = 0; 
+        int src3 = 0;
+
+        int a = 0;
 
 	fprintf(stderr, "nclude <stdbool.h>sim: ** starting functional simulation **\n");
 
@@ -466,10 +461,8 @@ void sim_main(void)
 			// then increment the total number of register operations
 			// then set the previous register to be the new register for the next cycle
 #define DEFINST(OP,MSK,NAME,OPFORM,RES,FLAGS,O1,O2,I1,I2,I3)						\
-		        case OP:									\
-			new_reg = O1;									\
-                        dst_curr1 = GPR(O1); dst_curr2 = GPR(O2);                                       		\
-                        src1 = GPR(I1); src2 = GPR(I2); src3 = GPR(I3);					\
+			case OP:									\
+		        new_reg = O1; src1 = I1; src2 = I2; src3 = I3;			\
 			if( isGPR(new_reg) ) {	 							\
 				bits_diff = count_bits_different(GPR(prv_reg), GPR(new_reg));		\
 				g_total_register_operations++;                            		\
@@ -505,29 +498,18 @@ void sim_main(void)
                     g_total_fstore_branches++;
                 }
 
-		// if we go through a load or a branch cycle, save the destination registers
-		if (MD_OP_FLAGS(op) & F_LOAD || MD_OP_FLAGS(op) & F_CTRL)
-                {
-		    dst_load1 = dst_curr1; 
-		    dst_load2 = dst_curr2;
-		    load_last_cycle = true;
-                }
-                // if we're going through a cycle that isn't a load or a branch, then we may have a dependency from a load/branch from last cycle
-                else if(load_last_cycle)
-                {	
-		    // if either destination register from last cycle is the source register of this cycle, increment the counter
-                    if( dst_load1 == src1 || dst_load1 == src2 || dst_load1 == src3 ||
-		        dst_load2 == src1 || dst_load2 == src2 || dst_load2 == src3 ) g_total_fload_branches++;
-                    
-                    // then set the destination registers to garbage values so we don't increment again until after another load
-                    load_last_cycle = false;
+		if (MD_OP_FLAGS(op) & F_LOAD || MD_OP_FLAGS(op) & F_CTRL){
+                    dst = GPR(new_reg);
+                } else {
+                    if(dst == GPR(src1) || dst == GPR(src2) || dst == GPR(src3)) g_total_fload_branches++;
+                    dst = -1;
                 }
 
 		if (MD_OP_FLAGS(op) & F_IMM){
                    g_total_fimm_branches++;
                 }
 
-             
+               
                 
 
 		// if the operation is a conditional type, save the number 

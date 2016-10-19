@@ -375,13 +375,21 @@ bool is_load(inst_t* i){
     return (MD_OP_FLAGS(op) & F_LOAD); // (MD_OP_FLAGS(op) & F_FCOMP);
 }
 
+bool is_branch(inst_t* i){
+    enum md_opcode op;
+    MD_SET_OPCODE(op, i->inst);
+    return (MD_OP_FLAGS(op) & F_CTRL);
+}
+
 void forward(inst_t* i){
     i->donecycle = sim_cycle;
     i->status = DONE; // i.e., finished writing back this cycle
 
     // release destination regs
+  
+    /*   
     g_raw[i->dst[0]] = NULL;
-    g_raw[i->dst[1]] = NULL;
+    g_raw[i->dst[1]] = NULL;/
 
     g_piperegister[IF_ID_REGISTER] = NULL;
     g_piperegister[ID_EX_REGISTER] = NULL;
@@ -389,6 +397,7 @@ void forward(inst_t* i){
     g_piperegister[MEM_WB_REGISTER] = NULL;
 
     free_inst(i);
+    */
 }
 
 
@@ -587,7 +596,10 @@ void execute()
     g_piperegister[EX_MEM_REGISTER] = pI; // move to EX/MEM register
     g_piperegister[ID_EX_REGISTER] = NULL;
 
-    if(!is_load(pI)) forward(pI);
+
+    // the result of any operation except a load operation can be forwarded
+    // in the execute stage
+    if(!is_load(pI) && !is_branch(pI)) forward(pI);
 }
 
 void memory()
@@ -601,6 +613,10 @@ void memory()
     pI->status = MEMORY_STAGE_COMPLETED;
     g_piperegister[MEM_WB_REGISTER] = pI; // move to MEM/WB register
     g_piperegister[EX_MEM_REGISTER] = NULL;
+
+
+    // all operations can be forwarded immediately from the memory stage
+    forward(pI);
 }
 
 void writeback(void)
@@ -675,7 +691,7 @@ void display_pipeline()
 }
 
 /* start simulation, program loaded, processor precise state initialized */
-void main(void)
+void sim_main(void)
 {
     cpen411_init();
 
