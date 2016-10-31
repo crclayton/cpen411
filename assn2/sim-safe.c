@@ -125,7 +125,6 @@ static counter_t g_total_register_bit_switch;
 static counter_t g_total_register_operations;
 static counter_t cpi;
 
-
 /* simulated registers */
 static struct regs_t regs;
 
