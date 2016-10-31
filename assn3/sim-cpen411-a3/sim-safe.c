@@ -53,6 +53,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <assert.h>
+#include <stdbool.h>
 
 #include "host.h"
 #include "misc.h"
@@ -294,6 +295,10 @@ sim_uninit(void)
 #define DFCC            (2+32+32)
 #define DTMP            (3+32+32)
 
+bool taken(int state){
+    return state >= 2;
+}
+
 /* start simulation, program loaded, processor precise state initialized */
 void
 sim_main(void)
@@ -384,10 +389,35 @@ sim_main(void)
         assert( index < PRED_SIZE );
         int prediction = bpred_pht[index];
 
-        int actual_outcome = (regs.regs_NPC != (regs.regs_PC + sizeof(md_inst_t)));
-        if(prediction != actual_outcome) g_total_mispredictions++;
+        int actual_outcome = (regs.regs_NPC != (regs.regs_PC + sizeof(md_inst_t)));   
 
-        bpred_pht[index] = actual_outcome;
+        if((taken(prediction) && actual_outcome == 0) || (!taken(prediction) && actual_outcome == 1)){
+	  g_total_mispredictions++;
+
+        } 
+        else if((taken(prediction) && actual_outcome == 1) || (!taken(prediction) && actual_outcome == 0)){
+
+        }
+        else {
+	   printf("You messed something up: %i %i", prediction, actual_outcome);
+        }
+	
+	if(actual_outcome == 1 && bpred_pht[index] < 3){
+	   bpred_pht[index] += 1;
+	}
+	else if(actual_outcome == 0 && bpred_pht[index] > 0){
+	   bpred_pht[index] -= 1;
+        } 
+	else if(actual_outcome == 1 && bpred_pht[index] == 3){
+	   
+        }  
+        else if(actual_outcome == 0 && bpred_pht[index] == 0){
+
+	}
+	else{
+	  printf("Messed something else up");
+	}   
+ 
       }
 
   
