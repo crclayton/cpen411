@@ -309,7 +309,8 @@ sim_main(void)
   register int is_write;
   enum md_fault_type fault;
 
-  int bpred_pht[PRED_SIZE]; // 2^18 entries * 1 bit
+  int bpred_pht[PRED_SIZE][2]; // 2^18 entries * 1 bit
+  int last_branch = 0;
 
   fprintf(stderr, "sim: ** starting functional simulation **\n");
 
@@ -343,6 +344,7 @@ sim_main(void)
       /* execute the instruction */
       switch (op)
 	{
+#define DEFINST(OP,MSK,NAME,OPFORM,RES,FLAGS,O1,O2,I1,I2,I3)		\
 #define DEFINST(OP,MSK,NAME,OPFORM,RES,FLAGS,O1,O2,I1,I2,I3)		\
 	case OP:							\
           SYMCAT(OP,_IMPL);						\
@@ -387,21 +389,33 @@ sim_main(void)
         // PISA instructions are 8-bytes
         unsigned index = (regs.regs_PC >> 3) & ((1<<15)-1);
         assert( index < PRED_SIZE );
-        int prediction = bpred_pht[index];
+        int prediction = bpred_pht[index][0] && bpred_pht[index][1];
 
         int actual_outcome = (regs.regs_NPC != (regs.regs_PC + sizeof(md_inst_t)));   
 
+	/*
+	// 1-bit
+	if(prediction != actual_outcome) g_total_mispredictions++;
+
+	bpred_pht[index] = actual_outcome;	
+	*/
+
+	/*
+	// 2-bit saturating
+	
         if((taken(prediction) && actual_outcome == 0) || (!taken(prediction) && actual_outcome == 1)){
 	  g_total_mispredictions++;
-
+	  // we had a misprediction
         } 
         else if((taken(prediction) && actual_outcome == 1) || (!taken(prediction) && actual_outcome == 0)){
-
+          // we had a correct prediction
         }
         else {
+           // we should never be here.
 	   printf("You messed something up: %i %i", prediction, actual_outcome);
         }
-	
+
+
 	if(actual_outcome == 1 && bpred_pht[index] < 3){
 	   bpred_pht[index] += 1;
 	}
@@ -409,15 +423,24 @@ sim_main(void)
 	   bpred_pht[index] -= 1;
         } 
 	else if(actual_outcome == 1 && bpred_pht[index] == 3){
-	   
+           // stay in same state	   
         }  
         else if(actual_outcome == 0 && bpred_pht[index] == 0){
-
+           // stay in same state
 	}
-	else{
+	else{ 
+          // this is just here to make sure we haven't messed anything up.
 	  printf("Messed something else up");
 	}   
- 
+	*/
+
+        if(prediction != actual_outcome) g_total_mispredictions++;
+
+        bpred_pht[index][0] = actual_outcome;
+	bpred_pht[index][1] = last_branch;
+
+        last_branch = actual_outcome;	
+	
       }
 
   
