@@ -344,8 +344,7 @@ sim_main(void)
       /* execute the instruction */
       switch (op)
 	{
-#define DEFINST(OP,MSK,NAME,OPFORM,RES,FLAGS,O1,O2,I1,I2,I3)		\
-#define DEFINST(OP,MSK,NAME,OPFORM,RES,FLAGS,O1,O2,I1,I2,I3)		\
+#define DEFINST(OP,MSK,NAME,OPFORM,RES,FLAGS,O1,O2,I1,I2,I3)		\ 
 	case OP:							\
           SYMCAT(OP,_IMPL);						\
           break;
@@ -389,9 +388,12 @@ sim_main(void)
         // PISA instructions are 8-bytes
         unsigned index = (regs.regs_PC >> 3) & ((1<<15)-1);
         assert( index < PRED_SIZE );
-        int prediction = bpred_pht[index][0] && bpred_pht[index][1];
+
+        int prediction = bpred_pht[index][last_branch];
 
         int actual_outcome = (regs.regs_NPC != (regs.regs_PC + sizeof(md_inst_t)));   
+
+        //printf("Actual:%i, Last:%i, Pred:%i\n", actual_outcome, last_branch, prediction);
 
 	/*
 	// 1-bit
@@ -399,6 +401,8 @@ sim_main(void)
 
 	bpred_pht[index] = actual_outcome;	
 	*/
+
+
 
 	/*
 	// 2-bit saturating
@@ -434,12 +438,14 @@ sim_main(void)
 	}   
 	*/
 
+
+
+	// 1-bit corelating
         if(prediction != actual_outcome) g_total_mispredictions++;
 
-        bpred_pht[index][0] = actual_outcome;
-	bpred_pht[index][1] = last_branch;
+        bpred_pht[index][last_branch] = actual_outcome;
 
-        last_branch = actual_outcome;	
+        last_branch = actual_outcome;
 	
       }
 
