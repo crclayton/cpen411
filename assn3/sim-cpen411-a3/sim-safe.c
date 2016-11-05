@@ -66,7 +66,7 @@
 #include "stats.h"
 #include "sim.h"
 
-const int PRED_SIZE = 262144;
+
 
 static counter_t g_total_cond_branches  = 0;
 static counter_t g_total_mispredictions = 0;
@@ -295,11 +295,10 @@ sim_uninit(void)
 #define DFCC            (2+32+32)
 #define DTMP            (3+32+32)
 
-bool taken(int state){
-    return state >= 2;
-}
 
-/* start simulation, program loaded, processor precise state initialized */
+const int PRED_SIZE = 262144;
+
+
 void
 sim_main(void)
 {
@@ -309,8 +308,11 @@ sim_main(void)
   register int is_write;
   enum md_fault_type fault;
 
-  int bpred_pht[PRED_SIZE][2]; // 2^18 entries * 1 bit
-  int last_branch = 0;
+  static int bpred_pht[262144][16];
+ 
+  int branch_history = 0;
+
+ 
 
   fprintf(stderr, "sim: ** starting functional simulation **\n");
 
@@ -339,7 +341,7 @@ sim_main(void)
       fault = md_fault_none;
 
       /* decode the instruction */
-      MD_SET_OPCODE(op, inst);
+      MD_SET_OPCODE(opi, inst);
 
       /* execute the instruction */
       switch (op)
@@ -385,25 +387,63 @@ sim_main(void)
       {
         g_total_cond_branches++;
 
+
+
         // PISA instructions are 8-bytes
-        unsigned index = (regs.regs_PC >> 3) & ((1<<15)-1);
-        assert( index < PRED_SIZE );
+        unsigned index = (regs.regs_PC >> 3) & ((1 << 11)-1);
+        assert( index < PRED_SIZE );	
+  
+	int prediction_state = bpred_pht[index][branch_history];
+	int actual_outcome = (regs.regs_NPC != (regs.regs_PC + sizeof(md_inst_t)));  
 
-        int prediction = bpred_pht[index][last_branch];
+	bool predicted_taken = (prediction_state > 2) ? true : false;
+	bool taken = (actual_outcome == 1) ? true: false; 
 
-        int actual_outcome = (regs.regs_NPC != (regs.regs_PC + sizeof(md_inst_t)));   
 
-        //printf("Actual:%i, Last:%i, Pred:%i\n", actual_outcome, last_branch, prediction);
+   	//printf("Pred: %i\t Act:%i\t I:%i\n", prediction, actual_outcome, index);		
+	assert( branch_history >= 0 && branch_history < 16 );
+	assert( prediction_state >= 0 && prediction_state < 4);
 
+
+	// count the number of mispredictions
+        if      ((predicted_taken && !taken) || (!predicted_taken && taken)) g_total_mispredictions++; // we had a misprediction
+        else if ((predicted_taken && taken) || (!predicted_taken && !taken)) ; // we had a correct prediction
+        else printf("You messed something up: %i %i", prediction_state, actual_outcome);
+    
+
+    	// update the state of the saturating counter
+        if      ( taken && bpred_pht[index][branch_history] < 3)  bpred_pht[index][branch_history] += 1;
+        else if (!taken && bpred_pht[index][branch_history] > 0)  bpred_pht[index][branch_history] -= 1;
+        else if ( taken && bpred_pht[index][branch_history] == 3) ;// stay in same state
+        else if (!taken && bpred_pht[index][branch_history] == 0) ;  // stay in same state
+        else printf("Something messed up");
+         
+       
+	
+	// shift in a bit from the right	
+	branch_history = (branch_history << 1) & 15; // and 15 (...00001111) to only keep last 4 bits of history 
+	if (actual_outcome == 1) branch_history = branch_history | 1; // then if last_outcome is a 1, turn the shifted bit into a 1, otherwise leave it as a zero
+	
+	// then the branch_history bit will be a value from 0000 to 1111, so between 0-16
+	// we will use this value as a index to the table at which we're storing the memory
+	// for that pattern
+
+
+	//branch_history += actual_outcome;
+        //printf("Actual:%i, Last:%i, Pred:%i\n", actual_outcome, branch_history, prediction);
+	
+
+	
+	
 	/*
 	// 1-bit
 	if(prediction != actual_outcome) g_total_mispredictions++;
 
 	bpred_pht[index] = actual_outcome;	
 	*/
-
-
-
+		
+		
+	
 	/*
 	// 2-bit saturating
 	
@@ -439,13 +479,16 @@ sim_main(void)
 	*/
 
 
-
+	/*
 	// 1-bit corelating
         if(prediction != actual_outcome) g_total_mispredictions++;
 
-        bpred_pht[index][last_branch] = actual_outcome;
+        bpred_pht[index][branch_history] = actual_outcome;
 
-        last_branch = actual_outcome;
+        branch_history = actual_outcome;
+	*/
+
+
 	
       }
 
