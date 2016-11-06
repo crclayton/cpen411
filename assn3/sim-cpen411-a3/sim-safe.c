@@ -68,11 +68,14 @@
 
 
 
-static counter_t g_total_cond_branches  = 0;
-static counter_t g_total_mispredictions = 0;
-
-
+static counter_t g_total_cond_branches      = 0;
+static counter_t g_total_mispredictions_i   = 0;
+static counter_t g_total_mispredictions_ii  = 0;
+static counter_t g_total_mispredictions_iii = 0;
+static counter_t g_total_mispredictions_iv  = 0;
+static counter_t g_total_mispredictions_v   = 0;
 /*
+
  * This file implements a functional simulator.  This functional simulator is
  * the simplest, most user-friendly simulator in the simplescalar tool set.
  * Unlike sim-fast, this functional simulator checks for all instruction
@@ -133,13 +136,52 @@ sim_reg_stats(struct stat_sdb_t *sdb)
                    "total number of conditional branches executed",
                    &g_total_cond_branches, g_total_cond_branches, NULL);
 
-  stat_reg_counter(sdb, "sim_num_mispredict",
-                   "total number of mispredictions",
-                   &g_total_mispredictions, g_total_mispredictions, NULL);
+  stat_reg_counter(sdb, "sim_num_mispredict_i",
+                   "total number of mispredictions_i",
+                   &g_total_mispredictions_i, g_total_mispredictions_i, NULL);
 
-  stat_reg_formula(sdb, "sim_pred_accuracy",
-                   "branch prediction accuracy",
-                   "1 - sim_num_mispredict / sim_num_cond_branches", NULL);
+  stat_reg_formula(sdb, "sim_pred_accuracy_i",
+                   "branch prediction accuracy i",
+                   "1 - sim_num_mispredict_i / sim_num_cond_branches", NULL);
+
+
+  stat_reg_counter(sdb, "sim_num_mispredict_ii",
+                   "total number of mispredictions_ii",
+                   &g_total_mispredictions_ii, g_total_mispredictions_ii, NULL);
+
+  stat_reg_formula(sdb, "sim_pred_accuracy_ii",
+                   "branch prediction accuracy ii",
+                   "1 - sim_num_mispredict_ii / sim_num_cond_branches", NULL);
+
+
+  stat_reg_counter(sdb, "sim_num_mispredict_iii",
+                   "total number of mispredictions_iii",
+                   &g_total_mispredictions_iii, g_total_mispredictions_iii, NULL);
+
+  stat_reg_formula(sdb, "sim_pred_accuracy_iii",
+                   "branch prediction accuracy iii",
+                   "1 - sim_num_mispredict_iii / sim_num_cond_branches", NULL);
+
+
+
+  stat_reg_counter(sdb, "sim_num_mispredict_iv",
+                   "total number of mispredictions_iv",
+                   &g_total_mispredictions_iv, g_total_mispredictions_iv, NULL);
+
+  stat_reg_formula(sdb, "sim_pred_accuracy_iv",
+                   "branch prediction accuracy iv",
+                   "1 - sim_num_mispredict_iv / sim_num_cond_branches", NULL);
+
+
+
+  stat_reg_counter(sdb, "sim_num_mispredict_v",
+                   "total number of mispredictions_v",
+                   &g_total_mispredictions_v, g_total_mispredictions_v, NULL);
+
+  stat_reg_formula(sdb, "sim_pred_accuracy_v",
+                   "branch prediction accuracy v",
+                   "1 - sim_num_mispredict_v / sim_num_cond_branches", NULL);
+
 
   stat_reg_int(sdb, "sim_elapsed_time",
 	       "total simulation time in seconds",
@@ -296,10 +338,18 @@ sim_uninit(void)
 #define DTMP            (3+32+32)
 
 
-const int PRED_SIZE = 262144;
+#define  NUMBER_OF_ENTRIES      262144
+#define	 BITS_FOR_ENTRY         18     // log2(NUMBER_OF_ENTRIES) 
+
+#define  HISTORY_TO_RETAIN 	10
+#define  STATES_PER_ENTRY       1024     // 2^HISTORY_TO_RETAIN
 
 
-void
+
+
+static int bpred_pht_v[NUMBER_OF_ENTRIES][STATES_PER_ENTRY];
+int branch_history_v = 0; // predict all as taken to begin withuoid
+
 sim_main(void)
 {
   md_inst_t inst;
@@ -308,9 +358,19 @@ sim_main(void)
   register int is_write;
   enum md_fault_type fault;
 
-  static int bpred_pht[262144][16];
- 
-  int branch_history = 0;
+  static int bpred_pht_i[NUMBER_OF_ENTRIES];
+
+  static int bpred_pht_ii[NUMBER_OF_ENTRIES];
+
+  static int bpred_pht_iii[NUMBER_OF_ENTRIES][2];
+  int last_outcome_iii = 0;
+
+  static int bpred_pht_iv[NUMBER_OF_ENTRIES][16];
+  int branch_history_iv = 0; // predict all as taken to begin with
+
+  //static int bpred_pht_v[NUMBER_OF_ENTRIES][STATES_PER_ENTRY];
+  //int branch_history_v = 0; // predict all as taken to begin with
+
 
  
 
@@ -341,21 +401,21 @@ sim_main(void)
       fault = md_fault_none;
 
       /* decode the instruction */
-      MD_SET_OPCODE(opi, inst);
+      MD_SET_OPCODE(op, inst);
 
       /* execute the instruction */
       switch (op)
 	{
-#define DEFINST(OP,MSK,NAME,OPFORM,RES,FLAGS,O1,O2,I1,I2,I3)		\ 
-	case OP:							\
-          SYMCAT(OP,_IMPL);						\
-          break;
-#define DEFLINK(OP,MSK,NAME,MASK,SHIFT)					\
-        case OP:							\
-          panic("attempted to execute a linking opcode");
-#define CONNECT(OP)
-#define DECLARE_FAULT(FAULT)						\
-	  { fault = (FAULT); break; }
+#define DEFINST(OP,MSK,NAME,OPFORM,RES,FLAGS,O1,O2,I1,I2,I3)	\
+	case OP:						\
+          SYMCAT(OP,_IMPL);					\
+          break;					
+#define DEFLINK(OP,MSK,NAME,MASK,SHIFT)				\
+        case OP:						\
+          panic("attempted to execute a linking opcode");	
+#define CONNECT(OP)						
+#define DECLARE_FAULT(FAULT)					\
+	  { fault = (FAULT); break; }				
 #include "machine.def"
 	default:
 	  panic("attempted to execute a bogus opcode");
@@ -387,43 +447,89 @@ sim_main(void)
       {
         g_total_cond_branches++;
 
-
-
-        // PISA instructions are 8-bytes
-        unsigned index = (regs.regs_PC >> 3) & ((1 << 11)-1);
-        assert( index < PRED_SIZE );	
+ 
+        unsigned index = (regs.regs_PC >> 3) & ( (1<<BITS_FOR_ENTRY) - 1);
+        assert( index < NUMBER_OF_ENTRIES );	
   
-	int prediction_state = bpred_pht[index][branch_history];
-	int actual_outcome = (regs.regs_NPC != (regs.regs_PC + sizeof(md_inst_t)));  
-
-	bool predicted_taken = (prediction_state > 2) ? true : false;
-	bool taken = (actual_outcome == 1) ? true: false; 
+        int actual_outcome = (regs.regs_NPC != (regs.regs_PC + sizeof(md_inst_t)));
+	int branch_taken   = (actual_outcome == 1);        
 
 
-   	//printf("Pred: %i\t Act:%i\t I:%i\n", prediction, actual_outcome, index);		
-	assert( branch_history >= 0 && branch_history < 16 );
-	assert( prediction_state >= 0 && prediction_state < 4);
+        // i) 1-bit predictor
+	int prediction_i = bpred_pht_i[index];
+        if(prediction_i != actual_outcome) g_total_mispredictions_i++;
+        bpred_pht_i[index] = actual_outcome;
+        
+
+	// ii) 2-bit saturating counter
+	int prediction_state_ii = bpred_pht_ii[index];
+	bool predicted_taken_ii = (prediction_state_ii >= 2);
+
+	if ((branch_taken && !predicted_taken_ii) || (!branch_taken && predicted_taken_ii)) 
+		g_total_mispredictions_ii++;	
+
+	
+	if (branch_taken && bpred_pht_ii[index] < 3)
+		bpred_pht_ii[index] += 1;
+
+	else if (!branch_taken && bpred_pht_ii[index] > 0)
+		bpred_pht_ii[index] -= 1;
+
+	
+        // iii) 1-bit predictor with 1-bit of history
+        int prediction_iii = bpred_pht_iii[index][last_outcome_iii];
+        bool predicted_taken_iii = (prediction_iii == 1);
+
+        if ((branch_taken && !predicted_taken_iii) || (!branch_taken && predicted_taken_iii))
+                g_total_mispredictions_iii++; 
+
+	bpred_pht_iii[index][last_outcome_iii] = actual_outcome;
+        last_outcome_iii = actual_outcome;
 
 
-	// count the number of mispredictions
-        if      ((predicted_taken && !taken) || (!predicted_taken && taken)) g_total_mispredictions++; // we had a misprediction
-        else if ((predicted_taken && taken) || (!predicted_taken && !taken)) ; // we had a correct prediction
-        else printf("You messed something up: %i %i", prediction_state, actual_outcome);
-    
+	// iv) 2-bit saturating counter with 4 bits of history
+	int prediction_state_iv = bpred_pht_iv[index][branch_history_iv];
+	bool predicted_taken_iv = (prediction_state_iv >= 2);
+	
+        if ((branch_taken && !predicted_taken_iv) || (!branch_taken && predicted_taken_iv)) 
+		g_total_mispredictions_iv++;
+ 
 
-    	// update the state of the saturating counter
-        if      ( taken && bpred_pht[index][branch_history] < 3)  bpred_pht[index][branch_history] += 1;
-        else if (!taken && bpred_pht[index][branch_history] > 0)  bpred_pht[index][branch_history] -= 1;
-        else if ( taken && bpred_pht[index][branch_history] == 3) ;// stay in same state
-        else if (!taken && bpred_pht[index][branch_history] == 0) ;  // stay in same state
-        else printf("Something messed up");
+        if (branch_taken && bpred_pht_iv[index][branch_history_iv] < 3)  
+		bpred_pht_iv[index][branch_history_iv] += 1;
+
+        else if (!branch_taken && bpred_pht_iv[index][branch_history_iv] > 0)  
+		bpred_pht_iv[index][branch_history_iv] -= 1;
          
-       
-	
 	// shift in a bit from the right	
-	branch_history = (branch_history << 1) & 15; // and 15 (...00001111) to only keep last 4 bits of history 
-	if (actual_outcome == 1) branch_history = branch_history | 1; // then if last_outcome is a 1, turn the shifted bit into a 1, otherwise leave it as a zero
-	
+	branch_history_iv = (branch_history_iv << 1) & 15; // and 15 (...00001111) to only keep last 4 bits of history 
+	if (actual_outcome == 1) branch_history_iv = branch_history_iv | 1; // then if last_outcome is a 1, turn the shifted bit into a 1, otherwise leave it as a zero
+
+
+
+        // iv) 2-bit saturating counter with X bits of history
+        int prediction_state_v = bpred_pht_v[index][branch_history_v];
+        bool predicted_taken_v = (prediction_state_v >= 2);
+
+        if ((branch_taken && !predicted_taken_v) || (!branch_taken && predicted_taken_v))
+                g_total_mispredictions_v++;
+
+
+        if (branch_taken && bpred_pht_v[index][branch_history_v] < 3)
+                bpred_pht_v[index][branch_history_v] += 1;
+
+        else if (!branch_taken && bpred_pht_v[index][branch_history_v] > 0)
+                bpred_pht_v[index][branch_history_v] -= 1;
+
+        branch_history_v = (branch_history_v << 1) & (int)(pow(2, HISTORY_TO_RETAIN) - 1); // and 15 (...00001111) to only keep last 4 bits of history
+        if (actual_outcome == 1) branch_history_v = branch_history_v | 1; // then if last_outcome is a 1, turn the shifted bit into a 1, otherwise leave it as a zero
+
+
+
+
+
+
+
 	// then the branch_history bit will be a value from 0000 to 1111, so between 0-16
 	// we will use this value as a index to the table at which we're storing the memory
 	// for that pattern
