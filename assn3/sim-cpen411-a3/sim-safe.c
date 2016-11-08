@@ -348,9 +348,9 @@ sim_uninit(void)
 
 
 static int bpred_pht_v[NUMBER_OF_ENTRIES][STATES_PER_ENTRY];
-int branch_history_v = 0; // predict all as taken to begin withuoid
+int branch_history_v = 0; 
 
-sim_main(void)
+void sim_main(void)
 {
   md_inst_t inst;
   register md_addr_t addr;
@@ -366,13 +366,8 @@ sim_main(void)
   int last_outcome_iii = 0;
 
   static int bpred_pht_iv[NUMBER_OF_ENTRIES][16];
-  int branch_history_iv = 0; // predict all as taken to begin with
+  int branch_history_iv = 0; 
 
-  //static int bpred_pht_v[NUMBER_OF_ENTRIES][STATES_PER_ENTRY];
-  //int branch_history_v = 0; // predict all as taken to begin with
-
-
- 
 
   fprintf(stderr, "sim: ** starting functional simulation **\n");
 
@@ -460,7 +455,6 @@ sim_main(void)
         if(prediction_i != actual_outcome) g_total_mispredictions_i++;
         bpred_pht_i[index] = actual_outcome;
         
-
 	// ii) 2-bit saturating counter
 	int prediction_state_ii = bpred_pht_ii[index];
 	bool predicted_taken_ii = (prediction_state_ii >= 2);
@@ -507,93 +501,26 @@ sim_main(void)
 
 
 
-        // iv) 2-bit saturating counter with X bits of history
+        // v) 2-bit saturating counter with X bits of history
         int prediction_state_v = bpred_pht_v[index][branch_history_v];
         bool predicted_taken_v = (prediction_state_v >= 2);
 
         if ((branch_taken && !predicted_taken_v) || (!branch_taken && predicted_taken_v))
                 g_total_mispredictions_v++;
 
-
+	// saturating counter
         if (branch_taken && bpred_pht_v[index][branch_history_v] < 3)
                 bpred_pht_v[index][branch_history_v] += 1;
 
         else if (!branch_taken && bpred_pht_v[index][branch_history_v] > 0)
                 bpred_pht_v[index][branch_history_v] -= 1;
 
-        branch_history_v = (branch_history_v << 1) & (int)(pow(2, HISTORY_TO_RETAIN) - 1); // and 15 (...00001111) to only keep last 4 bits of history
-        if (actual_outcome == 1) branch_history_v = branch_history_v | 1; // then if last_outcome is a 1, turn the shifted bit into a 1, otherwise leave it as a zero
-
-
-
-
-
-
-
-	// then the branch_history bit will be a value from 0000 to 1111, so between 0-16
-	// we will use this value as a index to the table at which we're storing the memory
-	// for that pattern
-
-
-	//branch_history += actual_outcome;
-        //printf("Actual:%i, Last:%i, Pred:%i\n", actual_outcome, branch_history, prediction);
-	
-
-	
-	
-	/*
-	// 1-bit
-	if(prediction != actual_outcome) g_total_mispredictions++;
-
-	bpred_pht[index] = actual_outcome;	
-	*/
-		
-		
-	
-	/*
-	// 2-bit saturating
-	
-        if((taken(prediction) && actual_outcome == 0) || (!taken(prediction) && actual_outcome == 1)){
-	  g_total_mispredictions++;
-	  // we had a misprediction
-        } 
-        else if((taken(prediction) && actual_outcome == 1) || (!taken(prediction) && actual_outcome == 0)){
-          // we had a correct prediction
-        }
-        else {
-           // we should never be here.
-	   printf("You messed something up: %i %i", prediction, actual_outcome);
-        }
-
-
-	if(actual_outcome == 1 && bpred_pht[index] < 3){
-	   bpred_pht[index] += 1;
-	}
-	else if(actual_outcome == 0 && bpred_pht[index] > 0){
-	   bpred_pht[index] -= 1;
-        } 
-	else if(actual_outcome == 1 && bpred_pht[index] == 3){
-           // stay in same state	   
-        }  
-        else if(actual_outcome == 0 && bpred_pht[index] == 0){
-           // stay in same state
-	}
-	else{ 
-          // this is just here to make sure we haven't messed anything up.
-	  printf("Messed something else up");
-	}   
-	*/
-
-
-	/*
-	// 1-bit corelating
-        if(prediction != actual_outcome) g_total_mispredictions++;
-
-        bpred_pht[index][branch_history] = actual_outcome;
-
-        branch_history = actual_outcome;
-	*/
-
+	// update history
+        branch_history_v = (branch_history_v << 1) & (int)(pow(2, HISTORY_TO_RETAIN) - 1); 
+	// and 15 (...00001111) to only keep last 4 bits of history
+        
+	if (actual_outcome == 1) branch_history_v = branch_history_v | 1; 
+	// then if last_outcome is a 1, turn the shifted bit into a 1, otherwise leave it as a zero
 
 	
       }
