@@ -338,17 +338,19 @@ sim_uninit(void)
 #define DTMP            (3+32+32)
 
 
-#define  NUMBER_OF_ENTRIES      262144
-#define	 BITS_FOR_ENTRY         18     // log2(NUMBER_OF_ENTRIES) 
+#define  NUMBER_OF_ENTRIES      1024
+#define	 BITS_FOR_ENTRY         10     // log2(NUMBER_OF_ENTRIES) 
 
-#define  HISTORY_TO_RETAIN 	10
-#define  STATES_PER_ENTRY       1024     // 2^HISTORY_TO_RETAIN
+#define  HISTORY_TO_RETAIN 	18
+#define  STATES_PER_ENTRY       262144     // 2^HISTORY_TO_RETAIN
 
+#define  NUMBER_OF_ENTRIES_STANDARD   32768
 
 
 
 static int bpred_pht_v[NUMBER_OF_ENTRIES][STATES_PER_ENTRY];
-int branch_history_v = 0; 
+int branch_history_v = 0;
+
 
 void sim_main(void)
 {
@@ -358,15 +360,15 @@ void sim_main(void)
   register int is_write;
   enum md_fault_type fault;
 
-  static int bpred_pht_i[NUMBER_OF_ENTRIES];
+static int bpred_pht_i[NUMBER_OF_ENTRIES_STANDARD];
 
-  static int bpred_pht_ii[NUMBER_OF_ENTRIES];
+static int bpred_pht_ii[NUMBER_OF_ENTRIES_STANDARD];
 
-  static int bpred_pht_iii[NUMBER_OF_ENTRIES][2];
-  int last_outcome_iii = 0;
+static int bpred_pht_iii[NUMBER_OF_ENTRIES_STANDARD][2];
+int last_outcome_iii = 0;
 
-  static int bpred_pht_iv[NUMBER_OF_ENTRIES][16];
-  int branch_history_iv = 0; 
+static int bpred_pht_iv[NUMBER_OF_ENTRIES_STANDARD][16];
+int branch_history_iv = 0;
 
 
   fprintf(stderr, "sim: ** starting functional simulation **\n");
@@ -455,6 +457,7 @@ void sim_main(void)
         if(prediction_i != actual_outcome) g_total_mispredictions_i++;
         bpred_pht_i[index] = actual_outcome;
         
+
 	// ii) 2-bit saturating counter
 	int prediction_state_ii = bpred_pht_ii[index];
 	bool predicted_taken_ii = (prediction_state_ii >= 2);
@@ -496,11 +499,14 @@ void sim_main(void)
 		bpred_pht_iv[index][branch_history_iv] -= 1;
          
 	// shift in a bit from the right	
-	branch_history_iv = (branch_history_iv << 1) & 15; // and 15 (...00001111) to only keep last 4 bits of history 
-	if (actual_outcome == 1) branch_history_iv = branch_history_iv | 1; // then if last_outcome is a 1, turn the shifted bit into a 1, otherwise leave it as a zero
+	branch_history_iv = (branch_history_iv << 1) & 15; 
+	// and 15 (...00001111) to only keep last 4 bits of history 
+	
+	if (actual_outcome == 1) branch_history_iv = branch_history_iv | 1; 
+	// then if last_outcome is a 1, turn the shifted bit into a 1, otherwise leave it as a zero
 
 
-
+ 
         // v) 2-bit saturating counter with X bits of history
         int prediction_state_v = bpred_pht_v[index][branch_history_v];
         bool predicted_taken_v = (prediction_state_v >= 2);
