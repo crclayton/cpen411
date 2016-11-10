@@ -95,148 +95,148 @@ static counter_t sim_num_refs = 0;
 static unsigned int max_insts;
 
 /* register simulator-specific options */
-void
+	void
 sim_reg_options(struct opt_odb_t *odb)
 {
-  opt_reg_header(odb, 
-"sim-safe: This simulator implements a functional simulator.  This\n"
-"functional simulator is the simplest, most user-friendly simulator in the\n"
-"simplescalar tool set.  Unlike sim-fast, this functional simulator checks\n"
-"for all instruction errors, and the implementation is crafted for clarity\n"
-"rather than speed.\n"
-		 );
+	opt_reg_header(odb, 
+			"sim-safe: This simulator implements a functional simulator.  This\n"
+			"functional simulator is the simplest, most user-friendly simulator in the\n"
+			"simplescalar tool set.  Unlike sim-fast, this functional simulator checks\n"
+			"for all instruction errors, and the implementation is crafted for clarity\n"
+			"rather than speed.\n"
+		      );
 
-  /* instruction limit */
-  opt_reg_uint(odb, "-max:inst", "maximum number of inst's to execute",
-	       &max_insts, /* default */0,
-	       /* print */TRUE, /* format */NULL);
+	/* instruction limit */
+	opt_reg_uint(odb, "-max:inst", "maximum number of inst's to execute",
+			&max_insts, /* default */0,
+			/* print */TRUE, /* format */NULL);
 
 }
 
 /* check simulator-specific option values */
-void
+	void
 sim_check_options(struct opt_odb_t *odb, int argc, char **argv)
 {
-  /* nada */
+	/* nada */
 }
 
 /* register simulator-specific statistics */
-void
+	void
 sim_reg_stats(struct stat_sdb_t *sdb)
 {
-  stat_reg_counter(sdb, "sim_num_insn",
-		   "total number of instructions executed",
-		   &sim_num_insn, sim_num_insn, NULL);
- 
-  stat_reg_counter(sdb, "sim_num_refs",
-		   "total number of loads and stores executed",
-		   &sim_num_refs, 0, NULL);
- 
-  stat_reg_counter(sdb, "sim_num_cond_branches",
-                   "total number of conditional branches executed",
-                   &g_total_cond_branches, g_total_cond_branches, NULL);
+	stat_reg_counter(sdb, "sim_num_insn",
+			"total number of instructions executed",
+			&sim_num_insn, sim_num_insn, NULL);
 
-  stat_reg_counter(sdb, "sim_num_mispredict_i",
-                   "total number of mispredictions_i",
-                   &g_total_mispredictions_i, g_total_mispredictions_i, NULL);
+	stat_reg_counter(sdb, "sim_num_refs",
+			"total number of loads and stores executed",
+			&sim_num_refs, 0, NULL);
 
-  stat_reg_formula(sdb, "sim_pred_accuracy_i",
-                   "branch prediction accuracy i",
-                   "1 - sim_num_mispredict_i / sim_num_cond_branches", NULL);
+	stat_reg_counter(sdb, "sim_num_cond_branches",
+			"total number of conditional branches executed",
+			&g_total_cond_branches, g_total_cond_branches, NULL);
 
+	stat_reg_counter(sdb, "sim_num_mispredict_i",
+			"total number of mispredictions_i",
+			&g_total_mispredictions_i, g_total_mispredictions_i, NULL);
 
-  stat_reg_counter(sdb, "sim_num_mispredict_ii",
-                   "total number of mispredictions_ii",
-                   &g_total_mispredictions_ii, g_total_mispredictions_ii, NULL);
-
-  stat_reg_formula(sdb, "sim_pred_accuracy_ii",
-                   "branch prediction accuracy ii",
-                   "1 - sim_num_mispredict_ii / sim_num_cond_branches", NULL);
+	stat_reg_formula(sdb, "sim_pred_accuracy_i",
+			"branch prediction accuracy i",
+			"1 - sim_num_mispredict_i / sim_num_cond_branches", NULL);
 
 
-  stat_reg_counter(sdb, "sim_num_mispredict_iii",
-                   "total number of mispredictions_iii",
-                   &g_total_mispredictions_iii, g_total_mispredictions_iii, NULL);
+	stat_reg_counter(sdb, "sim_num_mispredict_ii",
+			"total number of mispredictions_ii",
+			&g_total_mispredictions_ii, g_total_mispredictions_ii, NULL);
 
-  stat_reg_formula(sdb, "sim_pred_accuracy_iii",
-                   "branch prediction accuracy iii",
-                   "1 - sim_num_mispredict_iii / sim_num_cond_branches", NULL);
+	stat_reg_formula(sdb, "sim_pred_accuracy_ii",
+			"branch prediction accuracy ii",
+			"1 - sim_num_mispredict_ii / sim_num_cond_branches", NULL);
 
 
+	stat_reg_counter(sdb, "sim_num_mispredict_iii",
+			"total number of mispredictions_iii",
+			&g_total_mispredictions_iii, g_total_mispredictions_iii, NULL);
 
-  stat_reg_counter(sdb, "sim_num_mispredict_iv",
-                   "total number of mispredictions_iv",
-                   &g_total_mispredictions_iv, g_total_mispredictions_iv, NULL);
-
-  stat_reg_formula(sdb, "sim_pred_accuracy_iv",
-                   "branch prediction accuracy iv",
-                   "1 - sim_num_mispredict_iv / sim_num_cond_branches", NULL);
+	stat_reg_formula(sdb, "sim_pred_accuracy_iii",
+			"branch prediction accuracy iii",
+			"1 - sim_num_mispredict_iii / sim_num_cond_branches", NULL);
 
 
 
-  stat_reg_counter(sdb, "sim_num_mispredict_v",
-                   "total number of mispredictions_v",
-                   &g_total_mispredictions_v, g_total_mispredictions_v, NULL);
+	stat_reg_counter(sdb, "sim_num_mispredict_iv",
+			"total number of mispredictions_iv",
+			&g_total_mispredictions_iv, g_total_mispredictions_iv, NULL);
 
-  stat_reg_formula(sdb, "sim_pred_accuracy_v",
-                   "branch prediction accuracy v",
-                   "1 - sim_num_mispredict_v / sim_num_cond_branches", NULL);
+	stat_reg_formula(sdb, "sim_pred_accuracy_iv",
+			"branch prediction accuracy iv",
+			"1 - sim_num_mispredict_iv / sim_num_cond_branches", NULL);
 
 
-  stat_reg_int(sdb, "sim_elapsed_time",
-	       "total simulation time in seconds",
-	       &sim_elapsed_time, 0, NULL);
- 
-  stat_reg_formula(sdb, "sim_inst_rate",
-		   "simulation speed (in insts/sec)",
-		   "sim_num_insn / sim_elapsed_time", NULL);
-  ld_reg_stats(sdb);
-  mem_reg_stats(mem, sdb);
+
+	stat_reg_counter(sdb, "sim_num_mispredict_v",
+			"total number of mispredictions_v",
+			&g_total_mispredictions_v, g_total_mispredictions_v, NULL);
+
+	stat_reg_formula(sdb, "sim_pred_accuracy_v",
+			"branch prediction accuracy v",
+			"1 - sim_num_mispredict_v / sim_num_cond_branches", NULL);
+
+
+	stat_reg_int(sdb, "sim_elapsed_time",
+			"total simulation time in seconds",
+			&sim_elapsed_time, 0, NULL);
+
+	stat_reg_formula(sdb, "sim_inst_rate",
+			"simulation speed (in insts/sec)",
+			"sim_num_insn / sim_elapsed_time", NULL);
+	ld_reg_stats(sdb);
+	mem_reg_stats(mem, sdb);
 }
 
 /* initialize the simulator */
-void
+	void
 sim_init(void)
 {
-  sim_num_refs = 0;
+	sim_num_refs = 0;
 
-  /* allocate and initialize register file */
-  regs_init(&regs);
+	/* allocate and initialize register file */
+	regs_init(&regs);
 
-  /* allocate and initialize memory space */
-  mem = mem_create("mem");
-  mem_init(mem);
+	/* allocate and initialize memory space */
+	mem = mem_create("mem");
+	mem_init(mem);
 }
 
 /* load program into simulated state */
-void
+	void
 sim_load_prog(char *fname,		/* program to load */
-	      int argc, char **argv,	/* program arguments */
-	      char **envp)		/* program environment */
+		int argc, char **argv,	/* program arguments */
+		char **envp)		/* program environment */
 {
-  /* load program text and data, set up environment, memory, and regs */
-  ld_load_prog(fname, argc, argv, envp, &regs, mem, TRUE);
+	/* load program text and data, set up environment, memory, and regs */
+	ld_load_prog(fname, argc, argv, envp, &regs, mem, TRUE);
 }
 
 /* print simulator-specific configuration information */
-void
+	void
 sim_aux_config(FILE *stream)		/* output stream */
 {
-  /* nothing currently */
+	/* nothing currently */
 }
 
 /* dump simulator-specific auxiliary simulator statistics */
-void
+	void
 sim_aux_stats(FILE *stream)		/* output stream */
 {
-  /* nada */
+	/* nada */
 }
 
 /* un-initialize simulator-specific state */
-void
+	void
 sim_uninit(void)
 {
-  /* nada */
+	/* nada */
 }
 
 
@@ -296,25 +296,25 @@ sim_uninit(void)
 
 /* precise architected memory state accessor macros */
 #define READ_BYTE(SRC, FAULT)						\
-  ((FAULT) = md_fault_none, addr = (SRC), MEM_READ_BYTE(mem, addr))
+	((FAULT) = md_fault_none, addr = (SRC), MEM_READ_BYTE(mem, addr))
 #define READ_HALF(SRC, FAULT)						\
-  ((FAULT) = md_fault_none, addr = (SRC), MEM_READ_HALF(mem, addr))
+	((FAULT) = md_fault_none, addr = (SRC), MEM_READ_HALF(mem, addr))
 #define READ_WORD(SRC, FAULT)						\
-  ((FAULT) = md_fault_none, addr = (SRC), MEM_READ_WORD(mem, addr))
+	((FAULT) = md_fault_none, addr = (SRC), MEM_READ_WORD(mem, addr))
 #ifdef HOST_HAS_QWORD
 #define READ_QWORD(SRC, FAULT)						\
-  ((FAULT) = md_fault_none, addr = (SRC), MEM_READ_QWORD(mem, addr))
+	((FAULT) = md_fault_none, addr = (SRC), MEM_READ_QWORD(mem, addr))
 #endif /* HOST_HAS_QWORD */
 
 #define WRITE_BYTE(SRC, DST, FAULT)					\
-  ((FAULT) = md_fault_none, addr = (DST), MEM_WRITE_BYTE(mem, addr, (SRC)))
+	((FAULT) = md_fault_none, addr = (DST), MEM_WRITE_BYTE(mem, addr, (SRC)))
 #define WRITE_HALF(SRC, DST, FAULT)					\
-  ((FAULT) = md_fault_none, addr = (DST), MEM_WRITE_HALF(mem, addr, (SRC)))
+	((FAULT) = md_fault_none, addr = (DST), MEM_WRITE_HALF(mem, addr, (SRC)))
 #define WRITE_WORD(SRC, DST, FAULT)					\
-  ((FAULT) = md_fault_none, addr = (DST), MEM_WRITE_WORD(mem, addr, (SRC)))
+	((FAULT) = md_fault_none, addr = (DST), MEM_WRITE_WORD(mem, addr, (SRC)))
 #ifdef HOST_HAS_QWORD
 #define WRITE_QWORD(SRC, DST, FAULT)					\
-  ((FAULT) = md_fault_none, addr = (DST), MEM_WRITE_QWORD(mem, addr, (SRC)))
+	((FAULT) = md_fault_none, addr = (DST), MEM_WRITE_QWORD(mem, addr, (SRC)))
 #endif /* HOST_HAS_QWORD */
 
 /* system call handler macro */
@@ -344,8 +344,9 @@ sim_uninit(void)
 #define  HISTORY_TO_RETAIN 	18
 #define  STATES_PER_ENTRY       262144     // 2^HISTORY_TO_RETAIN
 
-#define  NUMBER_OF_ENTRIES_STANDARD  262144
+#define  NUMBER_OF_ENTRIES_STANDARD  32768 // 262144
 
+#define  RUN_I_THROUGH_IV        false   // set to false to run custom predictor
 
 
 static int bpred_pht_v[NUMBER_OF_ENTRIES][STATES_PER_ENTRY];
@@ -360,17 +361,17 @@ void sim_main(void)
   register int is_write;
   enum md_fault_type fault;
 
-/*
-static int bpred_pht_i[NUMBER_OF_ENTRIES_STANDARD];
 
-static int bpred_pht_ii[NUMBER_OF_ENTRIES_STANDARD];
+  static int bpred_pht_i[NUMBER_OF_ENTRIES_STANDARD];
 
-static int bpred_pht_iii[NUMBER_OF_ENTRIES_STANDARD][2];
-int last_outcome_iii = 0;
+  static int bpred_pht_ii[NUMBER_OF_ENTRIES_STANDARD];
 
-static int bpred_pht_iv[NUMBER_OF_ENTRIES_STANDARD][16];
-int branch_history_iv = 0;
-*/
+  static int bpred_pht_iii[NUMBER_OF_ENTRIES_STANDARD][2];
+  int last_outcome_iii = 0;
+
+  static int bpred_pht_iv[NUMBER_OF_ENTRIES_STANDARD][16];
+  int branch_history_iv = 0;
+
 
   fprintf(stderr, "sim: ** starting functional simulation **\n");
 
@@ -445,91 +446,97 @@ int branch_history_iv = 0;
       {
         g_total_cond_branches++;
 
- 
-        unsigned index = (regs.regs_PC >> 3) & ( (1<<BITS_FOR_ENTRY) - 1);
-        assert( index < NUMBER_OF_ENTRIES );	
-  
-        int actual_outcome = (regs.regs_NPC != (regs.regs_PC + sizeof(md_inst_t)));
-	int branch_taken   = (actual_outcome == 1);        
+	int actual_outcome = (regs.regs_NPC != (regs.regs_PC + sizeof(md_inst_t)));
+        int branch_taken   = (actual_outcome == 1);
 
-/*
-        // i) 1-bit predictor
-	int prediction_i = bpred_pht_i[index];
-        if(prediction_i != actual_outcome) g_total_mispredictions_i++;
-        bpred_pht_i[index] = actual_outcome;
+	if( RUN_I_THROUGH_IV ){ 
+
+          unsigned index = (regs.regs_PC >> 3) & ( (1 << 15) - 1);
+          assert( index < NUMBER_OF_ENTRIES_STANDARD );	
+  
+
+          // i) 1-bit predictor
+	  int prediction_i = bpred_pht_i[index];
+          if(prediction_i != actual_outcome) g_total_mispredictions_i++;
+          bpred_pht_i[index] = actual_outcome;
         
 
-	// ii) 2-bit saturating counter
-	int prediction_state_ii = bpred_pht_ii[index];
-	bool predicted_taken_ii = (prediction_state_ii >= 2);
+	  // ii) 2-bit saturating counter
+	  int prediction_state_ii = bpred_pht_ii[index];
+	  bool predicted_taken_ii = (prediction_state_ii >= 2);
 
-	if ((branch_taken && !predicted_taken_ii) || (!branch_taken && predicted_taken_ii)) 
+	  if ((branch_taken && !predicted_taken_ii) || (!branch_taken && predicted_taken_ii)) 
 		g_total_mispredictions_ii++;	
 
 	
-	if (branch_taken && bpred_pht_ii[index] < 3)
+	  if (branch_taken && prediction_state_ii < 3)
 		bpred_pht_ii[index] += 1;
 
-	else if (!branch_taken && bpred_pht_ii[index] > 0)
+	  else if (!branch_taken && prediction_state_ii > 0)
 		bpred_pht_ii[index] -= 1;
 
 	
-        // iii) 1-bit predictor with 1-bit of history
-        int prediction_iii = bpred_pht_iii[index][last_outcome_iii];
-        bool predicted_taken_iii = (prediction_iii == 1);
+          // iii) 1-bit predictor with 1-bit of history
+          int prediction_iii = bpred_pht_iii[index][last_outcome_iii];
+          bool predicted_taken_iii = (prediction_iii == 1);
 
-        if ((branch_taken && !predicted_taken_iii) || (!branch_taken && predicted_taken_iii))
+          if ((branch_taken && !predicted_taken_iii) || (!branch_taken && predicted_taken_iii))
                 g_total_mispredictions_iii++; 
 
-	bpred_pht_iii[index][last_outcome_iii] = actual_outcome;
-        last_outcome_iii = actual_outcome;
+	  bpred_pht_iii[index][last_outcome_iii] = actual_outcome;
+          last_outcome_iii = actual_outcome;
 
 
-	// iv) 2-bit saturating counter with 4 bits of history
-	int prediction_state_iv = bpred_pht_iv[index][branch_history_iv];
-	bool predicted_taken_iv = (prediction_state_iv >= 2);
+	  // iv) 2-bit saturating counter with 4 bits of history
+	  int prediction_state_iv = bpred_pht_iv[index][branch_history_iv];
+	  bool predicted_taken_iv = (prediction_state_iv >= 2);
 	
-        if ((branch_taken && !predicted_taken_iv) || (!branch_taken && predicted_taken_iv)) 
+          if ((branch_taken && !predicted_taken_iv) || (!branch_taken && predicted_taken_iv)) 
 		g_total_mispredictions_iv++;
  
 
-        if (branch_taken && bpred_pht_iv[index][branch_history_iv] < 3)  
+          if (branch_taken && prediction_state_iv < 3)  
 		bpred_pht_iv[index][branch_history_iv] += 1;
 
-        else if (!branch_taken && bpred_pht_iv[index][branch_history_iv] > 0)  
+          else if (!branch_taken && prediction_state_iv > 0)  
 		bpred_pht_iv[index][branch_history_iv] -= 1;
          
-	// shift in a bit from the right	
-	branch_history_iv = (branch_history_iv << 1) & 15; 
-	// and 15 (...00001111) to only keep last 4 bits of history 
+	  // shift in a bit from the right	
+	  branch_history_iv = (branch_history_iv << 1) & 15; 
+	  // and 15 (...00001111) to only keep last 4 bits of history 
 	
-	if (actual_outcome == 1) branch_history_iv = branch_history_iv | 1; 
-	// then if last_outcome is a 1, turn the shifted bit into a 1, otherwise leave it as a zero
-	*/
+	  if (actual_outcome == 1) branch_history_iv = branch_history_iv | 1; 
+	  // then if last_outcome is a 1, turn the shifted bit into a 1, otherwise leave it as a zero/
 
-	 
-        // v) 2-bit saturating counter with X bits of history
-        int prediction_state_v = bpred_pht_v[index][branch_history_v];
-        bool predicted_taken_v = (prediction_state_v >= 2);
+	}
+	else 
+        {
+          // v) 2-bit saturating counter with X bits of history
+	  unsigned index_v = (regs.regs_PC >> 3) & ( (1<<BITS_FOR_ENTRY) - 1);
+	  assert (index_v < NUMBER_OF_ENTRIES );
 
-        if ((branch_taken && !predicted_taken_v) || (!branch_taken && predicted_taken_v))
+
+          int prediction_state_v = bpred_pht_v[index_v][branch_history_v];
+          bool predicted_taken_v = (prediction_state_v >= 2);
+
+          if ((branch_taken && !predicted_taken_v) || (!branch_taken && predicted_taken_v))
                 g_total_mispredictions_v++;
 
-	// saturating counter
-        if (branch_taken && bpred_pht_v[index][branch_history_v] < 3)
-                bpred_pht_v[index][branch_history_v] += 1;
+	  // saturating counter
+          if (branch_taken && prediction_state_v < 3)
+                bpred_pht_v[index_v][branch_history_v] += 1;
 
-        else if (!branch_taken && bpred_pht_v[index][branch_history_v] > 0)
-                bpred_pht_v[index][branch_history_v] -= 1;
+          else if (!branch_taken && prediction_state_v > 0)
+                bpred_pht_v[index_v][branch_history_v] -= 1;
 
-	// update history
-        branch_history_v = (branch_history_v << 1) & (int)(pow(2, HISTORY_TO_RETAIN) - 1); 
-	// and 15 (...00001111) to only keep last 4 bits of history
+	  // update history
+          branch_history_v = (branch_history_v << 1) & (int)(pow(2, HISTORY_TO_RETAIN) - 1); 
+	  // and 15 (...00001111) to only keep last 4 bits of history
         
-	if (actual_outcome == 1) branch_history_v = branch_history_v | 1; 
-	// then if last_outcome is a 1, turn the shifted bit into a 1, otherwise leave it as a zero
+	  if (actual_outcome == 1) branch_history_v = branch_history_v | 1; 
+	  // then if last_outcome is a 1, turn the shifted bit into a 1, otherwise leave it as a zero
 	
-	
+	}
       }
 
   
