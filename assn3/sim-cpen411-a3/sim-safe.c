@@ -344,9 +344,9 @@ sim_uninit(void)
 #define  HISTORY_TO_RETAIN 	18
 #define  STATES_PER_ENTRY       262144     // 2^HISTORY_TO_RETAIN
 
-#define  NUMBER_OF_ENTRIES_STANDARD  32768 // 262144
+#define  NUMBER_OF_ENTRIES_STANDARD  262144 // 32768 // 262144
 
-#define  RUN_I_THROUGH_IV        false   // set to false to run custom predictor
+#define  RUN_I_THROUGH_IV            true   // set to false to run custom predictor
 
 
 static int bpred_pht_v[NUMBER_OF_ENTRIES][STATES_PER_ENTRY];
