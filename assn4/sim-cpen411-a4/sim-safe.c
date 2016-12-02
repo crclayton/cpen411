@@ -65,7 +65,12 @@
 #include "stats.h"
 #include "sim.h"
 
-static counter_t g_icache_miss;
+static counter_t loads;
+static counter_t stores;
+
+static counter_t g_lcache_miss;
+static counter_t g_scache_miss;
+static counter_t writeback_events;
 
 /*
  * This file implements a functional simulator.  This functional simulator is
@@ -125,17 +130,42 @@ sim_reg_stats(struct stat_sdb_t *sdb)
   stat_reg_int(sdb, "sim_elapsed_time",
 	       "total simulation time in seconds",
 	       &sim_elapsed_time, 0, NULL);
-  stat_reg_formula(sdb, "sim_inst_rate",
+ 
+ stat_reg_formula(sdb, "sim_inst_rate",
 		   "simulation speed (in insts/sec)",
 		   "sim_num_insn / sim_elapsed_time", NULL);
 
-  stat_reg_counter(sdb, "sim_num_icache_miss",
- 		"total number of instruction cache misses",
-		 &g_icache_miss, 0, NULL);
+  stat_reg_counter(sdb, "stores",
+                "total number of stores",
+                 &stores, 0, NULL);
 
-  stat_reg_formula(sdb, "sim_icache_miss_rate",
- 		"instruction cache miss rate (percentage)",
- 		"100*(sim_num_icache_miss / sim_num_insn)", NULL);
+  stat_reg_counter(sdb, "loads",
+                "total number of loads",
+                 &loads, 0, NULL);
+
+  stat_reg_counter(sdb, "sim_num_scache_miss",
+ 		"total number of store cache misses",
+		 &g_scache_miss, 0, NULL);
+
+  stat_reg_formula(sdb, "sim_scache_miss_rate",
+ 		"store cache miss rate (percentage)",
+ 		"100*(sim_num_scache_miss / stores)", NULL);
+
+  stat_reg_counter(sdb, "sim_num_lcache_miss",
+                "total number of loads cache misses",
+                 &g_lcache_miss, 0, NULL);
+
+  stat_reg_formula(sdb, "sim_lcache_miss_rate",
+                "load cache miss rate (percentage)",
+                "100*(sim_num_lcache_miss / loads)", NULL);
+
+  stat_reg_counter(sdb, "writeback_events",
+                "total number of writeback events",
+                 &writeback_events, 0, NULL);
+
+  stat_reg_formula(sdb, "writeback_to_store_ratio",
+                "writeback events per store",
+                "100*(writeback_events / stores)", NULL);
 
   ld_reg_stats(sdb);
   mem_reg_stats(mem, sdb);
@@ -367,7 +397,7 @@ void cache_access( struct cache *c, unsigned addr, counter_t *miss_counter )
      }
   
      *miss_counter = *miss_counter + 1;    
-    
+     writeback_events++;   
    }
 }
 
@@ -402,7 +432,6 @@ sim_main(void)
       regs.regs_F.d[MD_REG_ZERO] = 0.0;
 #endif /* TARGET_ALPHA */
 
-      cache_access(icache, regs.regs_PC, &g_icache_miss);
       
 
       /* get the next instruction to execute */
@@ -452,12 +481,29 @@ sim_main(void)
 	  /* fflush(stderr); */
 	}
 
+
       if (MD_OP_FLAGS(op) & F_MEM)
 	{
 	  sim_num_refs++;
+           
 	  if (MD_OP_FLAGS(op) & F_STORE)
 	    is_write = TRUE;
 	}
+
+
+       if( (MD_OP_FLAGS(op) & F_LOAD) != 0) {
+           loads++;
+           cache_access(icache, addr, &g_lcache_miss);
+       }
+
+
+       if( (MD_OP_FLAGS(op) & F_STORE) != 0) {
+           stores++;
+           cache_access(icache, addr, &g_scache_miss);
+       }
+
+
+
 
 
       /* go to the next instruction */
