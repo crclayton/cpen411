@@ -330,6 +330,22 @@ struct block {
    int m_valid3;
    md_addr_t m_tag3;   
    unsigned time3;
+
+   int m_valid4;
+   md_addr_t m_tag4;
+   unsigned time4;
+
+   int m_valid5;
+   md_addr_t m_tag5;
+   unsigned time5;
+
+   int m_valid6;
+   md_addr_t m_tag6;
+   unsigned time6;
+
+   int m_valid7;
+   md_addr_t m_tag7;
+   unsigned time7;
 };
 
 struct cache {
@@ -374,10 +390,30 @@ void cache_access( struct cache *c, unsigned addr, counter_t *miss_counter )
    {
       c->m_tag_array[index].time3 = sim_num_insn;
    }
+   else if( c->m_tag_array[index].m_valid4 && (c->m_tag_array[index].m_tag4 == tag))
+   {
+      c->m_tag_array[index].time4 = sim_num_insn;
+   }
+   else if( c->m_tag_array[index].m_valid5 && (c->m_tag_array[index].m_tag5 == tag))
+   {
+      c->m_tag_array[index].time5 = sim_num_insn;
+   }
+   else if( c->m_tag_array[index].m_valid6 && (c->m_tag_array[index].m_tag6 == tag))
+   {
+      c->m_tag_array[index].time6 = sim_num_insn;
+   }
+   else if( c->m_tag_array[index].m_valid7 && (c->m_tag_array[index].m_tag7 == tag))
+   {
+      c->m_tag_array[index].time7 = sim_num_insn;
+   }
    else 
    {
 
-     int lowest = findlowest(c->m_tag_array[index].time0, c->m_tag_array[index].time1, c->m_tag_array[index].time2, c->m_tag_array[index].time3);
+     int lowest1 = findlowest(c->m_tag_array[index].time0, c->m_tag_array[index].time1, c->m_tag_array[index].time2, c->m_tag_array[index].time3);
+
+     int lowest2 = findlowest(c->m_tag_array[index].time4, c->m_tag_array[index].time5, c->m_tag_array[index].time6, c->m_tag_array[index].time7);
+
+     int lowest = (lowest1 > lowest2) ? lowest2 : lowest1;
 
      if(lowest == c->m_tag_array[index].time0) {
         c->m_tag_array[index].m_valid0 = 1;
@@ -395,15 +431,32 @@ void cache_access( struct cache *c, unsigned addr, counter_t *miss_counter )
         c->m_tag_array[index].m_valid3 = 1;
         c->m_tag_array[index].m_tag3 = tag;
      }
-  
+     else if(lowest == c->m_tag_array[index].time4) {
+        c->m_tag_array[index].m_valid4 = 1;
+        c->m_tag_array[index].m_tag4 = tag;
+     }
+     else if(lowest == c->m_tag_array[index].time5) {
+        c->m_tag_array[index].m_valid5 = 1;
+        c->m_tag_array[index].m_tag5 = tag;
+     }
+     else if(lowest == c->m_tag_array[index].time6) {
+        c->m_tag_array[index].m_valid6 = 1;
+        c->m_tag_array[index].m_tag6 = tag;
+     }
+     else if(lowest == c->m_tag_array[index].time7) {
+        c->m_tag_array[index].m_valid7 = 1;
+        c->m_tag_array[index].m_tag7 = tag;
+     }
+ 
+
+
      *miss_counter = *miss_counter + 1;    
      writeback_events++;   
    }
 }
 
 /* start simulation, program loaded, processor precise state initialized */
-void
-sim_main(void)
+void sim_main(void)
 {
   md_inst_t inst;
   register md_addr_t addr;
@@ -412,11 +465,11 @@ sim_main(void)
   enum md_fault_type fault;
 
   struct cache *icache = (struct cache *) calloc( sizeof(struct cache), 1 );
-  icache->m_tag_array = (struct block *) calloc( sizeof(struct block), 256 ); // 256 32-byte blocks
+  icache->m_tag_array = (struct block *) calloc( sizeof(struct block), 256 ); // 256 64-byte blocks
   icache->m_total_blocks = 256;  
-  icache->m_set_shift = 5;       // each block is 32-bytes, so offset is log2(32)=5 bits 
-  icache->m_set_mask = (1<<8)-1; // log2(256)=8 bits to index 
-  icache->m_tag_shift = 13;
+  icache->m_set_shift = 6;       // each block is 64-bytes, so offset is log2(64)=6 bits 
+  icache->m_set_mask = (1<<5)-1; // log2(256)=5 bits to index 
+  icache->m_tag_shift = 11;
 
   fprintf(stderr, "sim: ** starting functional simulation **\n");
 
