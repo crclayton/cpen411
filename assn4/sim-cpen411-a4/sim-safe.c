@@ -71,6 +71,7 @@ static counter_t stores;
 static counter_t g_lcache_miss;
 static counter_t g_scache_miss;
 static counter_t g_icache_miss;
+static counter_t prefetches;
 
 static counter_t writeback_events;
 
@@ -345,55 +346,47 @@ struct cache {
 
 
 
-// cache to access,   starting address of memory reference,  pointer to miss counter
+// Parameters: cache, starting address of memory reference, miss counter
 void cache_access( struct cache *c, unsigned addr, counter_t *miss_counter)
 {
-   unsigned index, tag;
+   unsigned index, tag, i;
 
    index = (addr>>c->m_set_shift)&c->m_set_mask;
    tag = (addr>>c->m_tag_shift); 
    assert( index < c->m_total_blocks );
  
-   // if there are any hits, update the timestamp 
-   int hits = 0;
-   int i;
+   // if there are any hits, update their timestamp 
+   int miss = 1;
    for (i = 0; i < c->n_ways; i++){
      if(c->m_tag_array[index].m_valid[i] && (c->m_tag_array[index].m_tag[i] == tag)){
         c->m_tag_array[index].time[i] = sim_num_insn;
-        hits += 1;
+        miss = 0;
         break;
      }  
    }
 
    // if there aren't any hits, increment the counter and evict/replace the block 
-   if(hits == 0){
+   if(miss){
 
      *miss_counter = *miss_counter + 1;
      writeback_events++;
  
-     // if there is an invalid block, replace that
-     for (i = 0; i < c->n_ways; i++){
-        if(c->m_tag_array[index].m_valid[i] == 0) {
-           c->m_tag_array[index].m_valid[i] = 1;
-           c->m_tag_array[index].m_tag[i] = tag;
-           return;
-        }
-     }
-     
-     // if there aren't any invalid bits, replace the block with the lowest timestamp (LRU)
+     // find the block with the lowest timestamp (LRU)
      unsigned lowest = c->m_tag_array[index].time[0]; 
      for (i = 0; i < c->n_ways; i++){
         if(c->m_tag_array[index].time[i] < lowest) 
            lowest = c->m_tag_array[index].time[i];
      }
-
+ 
+     // replace/evict the LRU block 
      for (i = 0; i < c->n_ways; i++){
         if(c->m_tag_array[index].time[i] == lowest){
            c->m_tag_array[index].m_valid[i] = 1;
            c->m_tag_array[index].m_tag[i] = tag;
-           return;
         }
      }
+
+   
   }
 
 }
@@ -407,12 +400,16 @@ void sim_main(void)
   register int is_write;
   enum md_fault_type fault;
 
+  // specify whether to do an instruction prefetch with the 
+  int PREFETCH = 0;
+  
+
   // create instruction cache
   struct cache *icache = (struct cache *) calloc( sizeof(struct cache), 1);
   icache->m_tag_array = (struct block *) calloc( sizeof(struct block), 256); 
   icache->m_total_blocks = 256;  
-  icache->m_set_shift    = 5;       
-  icache->m_set_mask     = (1<<8)-1;  
+  icache->m_set_shift    = 5;    	// 5=log2(32 bytes/block)   
+  icache->m_set_mask     = (1<<8)-1;    // 8=log2(256 blocks/way)
   icache->m_tag_shift    = 13;
   icache->n_ways         = 4;
 
@@ -420,8 +417,8 @@ void sim_main(void)
   struct cache *dcache = (struct cache *) calloc( sizeof(struct cache), 1);
   dcache->m_tag_array = (struct block *) calloc( sizeof(struct block), 256);
   dcache->m_total_blocks = 256;
-  dcache->m_set_shift    = 6;       
-  dcache->m_set_mask     = (1<<5)-1;
+  dcache->m_set_shift    = 6;       	// 6=log2(64 bytes/block)
+  dcache->m_set_mask     = (1<<5)-1;	// 5=log2(32 blocks/way)
   dcache->m_tag_shift    = 11;
   dcache->n_ways         = 8;
 
@@ -441,7 +438,9 @@ void sim_main(void)
 
       
       cache_access(icache, regs.regs_PC, &g_icache_miss);
-
+      
+      // access the next instruction in order to prefetch the value into the cache 
+      if(PREFETCH) cache_access(icache, regs.regs_NPC, &prefetches); 
 
       MD_FETCH_INST(inst, mem, regs.regs_PC);
 
@@ -498,20 +497,17 @@ void sim_main(void)
 	    is_write = TRUE;
       }
 
-
+       
+       // data cache accesses for loads/stores
        if( (MD_OP_FLAGS(op) & F_LOAD) != 0) {
            loads++;
            cache_access(dcache, addr, &g_lcache_miss);
        }
 
-
        if( (MD_OP_FLAGS(op) & F_STORE) != 0) {
            stores++;
            cache_access(dcache, addr, &g_scache_miss);
        }
-
-
-      
 
 
       /* go to the next instruction */
