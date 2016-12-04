@@ -70,6 +70,8 @@ static counter_t stores;
 
 static counter_t g_lcache_miss;
 static counter_t g_scache_miss;
+static counter_t g_icache_miss;
+
 static counter_t writeback_events;
 
 /*
@@ -165,7 +167,16 @@ sim_reg_stats(struct stat_sdb_t *sdb)
 
   stat_reg_formula(sdb, "writeback_to_store_ratio",
                 "writeback events per store",
-                "100*(writeback_events / stores)", NULL);
+                "100*((sim_num_lcache_miss + sim_num_scache_miss) / stores)", NULL);
+
+  // instruction cache
+  stat_reg_counter(sdb, "sim_num_icache_miss",
+ 		"total number of instruction cache misses",
+		 &g_icache_miss, 0, NULL);
+
+  stat_reg_formula(sdb, "sim_icache_miss_rate",
+ 		"instruction cache miss rate (percentage)",
+ 		"100*(sim_num_icache_miss / sim_num_insn)", NULL);
 
   ld_reg_stats(sdb);
   mem_reg_stats(mem, sdb);
@@ -314,38 +325,12 @@ sim_uninit(void)
 #define DFCC            (2+32+32)
 #define DTMP            (3+32+32)
 
+#define MAX_WAYS 8
+
 struct block {
-   int m_valid0; 	  // is block valid?
-   md_addr_t m_tag0; // tag used to determine whether we have a cache hit
-   unsigned time0;   
-
-   int m_valid1;
-   md_addr_t m_tag1;
-   unsigned time1;
-
-   int m_valid2;
-   md_addr_t m_tag2;
-   unsigned time2;
-
-   int m_valid3;
-   md_addr_t m_tag3;   
-   unsigned time3;
-
-   int m_valid4;
-   md_addr_t m_tag4;
-   unsigned time4;
-
-   int m_valid5;
-   md_addr_t m_tag5;
-   unsigned time5;
-
-   int m_valid6;
-   md_addr_t m_tag6;
-   unsigned time6;
-
-   int m_valid7;
-   md_addr_t m_tag7;
-   unsigned time7;
+   md_addr_t m_tag[MAX_WAYS];
+   int m_valid[MAX_WAYS];
+   unsigned time[MAX_WAYS]; 
 };
 
 struct cache {
@@ -355,104 +340,62 @@ struct cache {
    unsigned m_set_shift;
    unsigned m_set_mask;
    unsigned m_tag_shift;
+   int n_ways;
 };
 
 
-int findlowest(int a, int b, int c, int d)
-{
-    int of_a_b = a < b ? a : b;
-    int of_c_d = c < d ? c : d;
-    return of_a_b < of_c_d ? of_a_b : of_c_d;
-}
 
 // cache to access,   starting address of memory reference,  pointer to miss counter
-void cache_access( struct cache *c, unsigned addr, counter_t *miss_counter )
+void cache_access( struct cache *c, unsigned addr, counter_t *miss_counter)
 {
    unsigned index, tag;
+
    index = (addr>>c->m_set_shift)&c->m_set_mask;
    tag = (addr>>c->m_tag_shift); 
    assert( index < c->m_total_blocks );
-  
-   // if tag is not valid, or cache tag doesn't equal tag, then we miss, and update the cache, and counter
-   if( c->m_tag_array[index].m_valid0 && (c->m_tag_array[index].m_tag0 == tag)) 
-   {
-      c->m_tag_array[index].time0 = sim_num_insn;
-   }
-   else if( c->m_tag_array[index].m_valid1 && (c->m_tag_array[index].m_tag1 == tag))
-   {
-      c->m_tag_array[index].time1 = sim_num_insn;
-   }
-   else if( c->m_tag_array[index].m_valid2 && (c->m_tag_array[index].m_tag2 == tag))
-   {
-      c->m_tag_array[index].time2 = sim_num_insn;
-   }
-   else if( c->m_tag_array[index].m_valid3 && (c->m_tag_array[index].m_tag3 == tag))
-   {
-      c->m_tag_array[index].time3 = sim_num_insn;
-   }
-   else if( c->m_tag_array[index].m_valid4 && (c->m_tag_array[index].m_tag4 == tag))
-   {
-      c->m_tag_array[index].time4 = sim_num_insn;
-   }
-   else if( c->m_tag_array[index].m_valid5 && (c->m_tag_array[index].m_tag5 == tag))
-   {
-      c->m_tag_array[index].time5 = sim_num_insn;
-   }
-   else if( c->m_tag_array[index].m_valid6 && (c->m_tag_array[index].m_tag6 == tag))
-   {
-      c->m_tag_array[index].time6 = sim_num_insn;
-   }
-   else if( c->m_tag_array[index].m_valid7 && (c->m_tag_array[index].m_tag7 == tag))
-   {
-      c->m_tag_array[index].time7 = sim_num_insn;
-   }
-   else 
-   {
-
-     int lowest1 = findlowest(c->m_tag_array[index].time0, c->m_tag_array[index].time1, c->m_tag_array[index].time2, c->m_tag_array[index].time3);
-
-     int lowest2 = findlowest(c->m_tag_array[index].time4, c->m_tag_array[index].time5, c->m_tag_array[index].time6, c->m_tag_array[index].time7);
-
-     int lowest = (lowest1 > lowest2) ? lowest2 : lowest1;
-
-     if(lowest == c->m_tag_array[index].time0) {
-        c->m_tag_array[index].m_valid0 = 1;
-        c->m_tag_array[index].m_tag0 = tag;
-     } 
-     else if(lowest == c->m_tag_array[index].time1) {
-        c->m_tag_array[index].m_valid1 = 1;
-        c->m_tag_array[index].m_tag1 = tag;
-     }
-     else if(lowest == c->m_tag_array[index].time2) {
-        c->m_tag_array[index].m_valid2 = 1;
-        c->m_tag_array[index].m_tag2 = tag;
-     }
-     else if(lowest == c->m_tag_array[index].time3) {
-        c->m_tag_array[index].m_valid3 = 1;
-        c->m_tag_array[index].m_tag3 = tag;
-     }
-     else if(lowest == c->m_tag_array[index].time4) {
-        c->m_tag_array[index].m_valid4 = 1;
-        c->m_tag_array[index].m_tag4 = tag;
-     }
-     else if(lowest == c->m_tag_array[index].time5) {
-        c->m_tag_array[index].m_valid5 = 1;
-        c->m_tag_array[index].m_tag5 = tag;
-     }
-     else if(lowest == c->m_tag_array[index].time6) {
-        c->m_tag_array[index].m_valid6 = 1;
-        c->m_tag_array[index].m_tag6 = tag;
-     }
-     else if(lowest == c->m_tag_array[index].time7) {
-        c->m_tag_array[index].m_valid7 = 1;
-        c->m_tag_array[index].m_tag7 = tag;
-     }
  
-
-
-     *miss_counter = *miss_counter + 1;    
-     writeback_events++;   
+   // if there are any hits, update the timestamp 
+   int hits = 0;
+   int i;
+   for (i = 0; i < c->n_ways; i++){
+     if(c->m_tag_array[index].m_valid[i] && (c->m_tag_array[index].m_tag[i] == tag)){
+        c->m_tag_array[index].time[i] = sim_num_insn;
+        hits += 1;
+        break;
+     }  
    }
+
+   // if there aren't any hits, increment the counter and evict/replace the block 
+   if(hits == 0){
+
+     *miss_counter = *miss_counter + 1;
+     writeback_events++;
+ 
+     // if there is an invalid block, replace that
+     for (i = 0; i < c->n_ways; i++){
+        if(c->m_tag_array[index].m_valid[i] == 0) {
+           c->m_tag_array[index].m_valid[i] = 1;
+           c->m_tag_array[index].m_tag[i] = tag;
+           return;
+        }
+     }
+     
+     // if there aren't any invalid bits, replace the block with the lowest timestamp (LRU)
+     unsigned lowest = c->m_tag_array[index].time[0]; 
+     for (i = 0; i < c->n_ways; i++){
+        if(c->m_tag_array[index].time[i] < lowest) 
+           lowest = c->m_tag_array[index].time[i];
+     }
+
+     for (i = 0; i < c->n_ways; i++){
+        if(c->m_tag_array[index].time[i] == lowest){
+           c->m_tag_array[index].m_valid[i] = 1;
+           c->m_tag_array[index].m_tag[i] = tag;
+           return;
+        }
+     }
+  }
+
 }
 
 /* start simulation, program loaded, processor precise state initialized */
@@ -464,12 +407,23 @@ void sim_main(void)
   register int is_write;
   enum md_fault_type fault;
 
-  struct cache *icache = (struct cache *) calloc( sizeof(struct cache), 1 );
-  icache->m_tag_array = (struct block *) calloc( sizeof(struct block), 256 ); // 256 64-byte blocks
+  // create instruction cache
+  struct cache *icache = (struct cache *) calloc( sizeof(struct cache), 1);
+  icache->m_tag_array = (struct block *) calloc( sizeof(struct block), 256); 
   icache->m_total_blocks = 256;  
-  icache->m_set_shift = 6;       // each block is 64-bytes, so offset is log2(64)=6 bits 
-  icache->m_set_mask = (1<<5)-1; // log2(256)=5 bits to index 
-  icache->m_tag_shift = 11;
+  icache->m_set_shift    = 5;       
+  icache->m_set_mask     = (1<<8)-1;  
+  icache->m_tag_shift    = 13;
+  icache->n_ways         = 4;
+
+  // create data cache
+  struct cache *dcache = (struct cache *) calloc( sizeof(struct cache), 1);
+  dcache->m_tag_array = (struct block *) calloc( sizeof(struct block), 256);
+  dcache->m_total_blocks = 256;
+  dcache->m_set_shift    = 6;       
+  dcache->m_set_mask     = (1<<5)-1;
+  dcache->m_tag_shift    = 11;
+  dcache->n_ways         = 8;
 
   fprintf(stderr, "sim: ** starting functional simulation **\n");
 
@@ -486,8 +440,9 @@ void sim_main(void)
 #endif /* TARGET_ALPHA */
 
       
+      cache_access(icache, regs.regs_PC, &g_icache_miss);
 
-      /* get the next instruction to execute */
+
       MD_FETCH_INST(inst, mem, regs.regs_PC);
 
       /* keep an instruction count */
@@ -536,27 +491,27 @@ void sim_main(void)
 
 
       if (MD_OP_FLAGS(op) & F_MEM)
-	{
+      {
 	  sim_num_refs++;
            
 	  if (MD_OP_FLAGS(op) & F_STORE)
 	    is_write = TRUE;
-	}
+      }
 
 
        if( (MD_OP_FLAGS(op) & F_LOAD) != 0) {
            loads++;
-           cache_access(icache, addr, &g_lcache_miss);
+           cache_access(dcache, addr, &g_lcache_miss);
        }
 
 
        if( (MD_OP_FLAGS(op) & F_STORE) != 0) {
            stores++;
-           cache_access(icache, addr, &g_scache_miss);
+           cache_access(dcache, addr, &g_scache_miss);
        }
 
 
-
+      
 
 
       /* go to the next instruction */
